@@ -46,6 +46,12 @@ class ModelProvider:
                 "endpoint": os.getenv("ZHIPU_ENDPOINT"),
                 "api_key": os.getenv("ZHIPU_API_KEY"),
             }
+        elif vendor == 'moonshot':
+            return {
+                "type": "moonshot",
+                "endpoint": os.getenv("MOONSHOT_ENDPOINT"),
+                "api_key": os.getenv("MOONSHOT_API_KEY"),
+            }
         else:
             return {
                 "type": "openai",
@@ -73,7 +79,7 @@ def get_response(prompt, model_spec="zhipu:glm-4-flash"):
     if model_variant is None:
         raise ValueError("DEFAULT_MODEL 环境变量未设置")
     
-    if config["type"] in ["openai", "deepseek", "qwen", "zhipu"]:
+    if config["type"] in ["openai", "deepseek", "qwen", "zhipu", "moonshot"]:
         base_url = config["endpoint"]
         api_key = config["api_key"]
         client = openai.OpenAI(base_url=base_url, api_key=api_key)
