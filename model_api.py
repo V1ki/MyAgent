@@ -5,6 +5,7 @@ import openai
 # 如果使用 gemini 则需要导入 google.genai
 from google import genai
 
+import base64
 # 功能结束: 导入必要模块
 
 
@@ -26,13 +27,11 @@ class ModelProvider:
                 "endpoint": os.getenv("DEEPSEEK_ENDPOINT", "https://api.deepseek.com/v1"),
                 "api_key": os.getenv("DEEPSEEK_API_KEY"),
             }
-        elif vendor == "qwen":
+        elif vendor == "dashscope":
             return {
-                "type": "qwen",
-                "endpoint": os.getenv(
-                    "QWEN_ENDPOINT", "https://dashscope.aliyuncs.com/compatible-mode/v1"
-                ),
-                "api_key": os.getenv("QWEN_API_KEY"),
+                "type": "dashscope",
+                "endpoint": os.getenv("DASHSCOPE_ENDPOINT", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
+                "api_key": os.getenv("DASHSCOPE_API_KEY"),
             }
         elif vendor == "gemini":
             return {
@@ -62,8 +61,21 @@ class ModelProvider:
 
 # 功能结束: 定义服务商选择器类
 
+
+# 功能开始: encode image to base64
+def encode_image(image_path):
+    # get image format
+    image_format = image_path.split(".")[-1]
+    image_format = image_format.lower()
+    if image_format == "jpg":
+        image_format = "jpeg"
+    
+    with open(image_path, "rb") as f:
+        return image_format, base64.b64encode(f.read()).decode("utf-8")
+# 功能结束: encode image to base64
+
 # 功能开始: 定义请求处理方法
-def get_response(prompt, model_spec="zhipu:glm-4-flash"):
+def get_response(prompt, model_spec="zhipu:glm-4-flash", image_path=None):
     """
     根据服务商配置调用对应 API 生成回复
     参数:
@@ -76,15 +88,31 @@ def get_response(prompt, model_spec="zhipu:glm-4-flash"):
     config = ModelProvider.get_vendor_config(vendor=vendor)
     model_variant = model_spec.split(":")[1]
     
+    if image_path is not None:
+        if not os.path.exists(image_path):
+            raise ValueError("图像文件不存在")
+    
     if model_variant is None:
         raise ValueError("DEFAULT_MODEL 环境变量未设置")
     
-    if config["type"] in ["openai", "deepseek", "qwen", "zhipu", "moonshot"]:
+    if config["type"] in ["openai", "deepseek", "dashscope", "zhipu", "moonshot"]:
         base_url = config["endpoint"]
         api_key = config["api_key"]
         client = openai.OpenAI(base_url=base_url, api_key=api_key)
+        if image_path:
+            with open(image_path, "rb") as f:
+                img_encode_data = encode_image(image_path)
+                content = [
+                    {"type": "image_url", "image_url": {"url": f"data:image/{img_encode_data[0]};base64,{img_encode_data[1]}"}},
+                    {"type": "text", "text": prompt}
+                ]
+        else:
+            content = prompt
+        
         response = client.chat.completions.create(
-            model=model_variant, messages=[{"role": "user", "content": prompt}]
+            model=model_variant, messages=[
+                {"role": "user", "content": content}
+            ]
         )
         reply = response.choices[0].message.content
     elif config["type"] == "gemini":

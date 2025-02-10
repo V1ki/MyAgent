@@ -16,4 +16,17 @@ if __name__ == "__main__":
     model_spec = "gemini:gemini-2.0-flash-thinking-exp-01-21"
     result = get_response(prompt=user_input, model_spec=model_spec)  # 调用 model_api 模块中的请求方法
     print("Agent Answer:", result)
+    
+    print("====================================")
+    # 功能开始: VLM 视觉理解 模型 测试
+    image_path = "resouce/lianpu.jpeg"
+    model_spec = "dashscope:qwen2.5-vl-72b-instruct"
+    user_input = "Extract the text from the image."
+    result = get_response(prompt=user_input, model_spec=model_spec, image_path=image_path)  # 调用 model_api 模块中的请求方法
+    print("Agent Answer:", result)
+    # 功能结束: VLM 视觉理解 模型 测试
+    
+    
+    
+    
 # 功能结束: 主程序入口
