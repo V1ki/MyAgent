@@ -73,7 +73,7 @@ def get_response(prompt, model_spec="zhipu:glm-4-flash"):
     if model_spec is None:
         model_spec = os.getenv("DEFAULT_MODEL")
     vendor = model_spec.split(":")[0]
-    config = ModelProvider.get_vendor_config(agent_type=vendor)
+    config = ModelProvider.get_vendor_config(vendor=vendor)
     model_variant = model_spec.split(":")[1]
     
     if model_variant is None:
@@ -84,12 +84,15 @@ def get_response(prompt, model_spec="zhipu:glm-4-flash"):
         api_key = config["api_key"]
         client = openai.OpenAI(base_url=base_url, api_key=api_key)
         response = client.chat.completions.create(
-            model=model_variant, messages=[{"role": "user", "content": prompt}], max_tokens=50
+            model=model_variant, messages=[{"role": "user", "content": prompt}]
         )
         reply = response.choices[0].message.content
     elif config["type"] == "gemini":
         try:
-            client = genai.Client(api_key=config["api_key"])
+            client = genai.Client(
+                api_key=config["api_key"],   
+                http_options={'api_version':'v1alpha'},
+                )
             response = client.models.generate_content(model=model_variant, contents=prompt)
             reply = response.text.strip()
         except Exception as e:
