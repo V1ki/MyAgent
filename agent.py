@@ -37,7 +37,7 @@ def test_vlm_model():
 # 测试开始: Ebeddeing 模型
 def test_embedding_model():
     user_input = "What is the meaning of life?"
-    model_spec = "dashscope:text-embedding-v3"
+    model_spec = "ollama:nomic-embed-text"
     result = embedding(input=user_input, model_spec=model_spec)  # 调用 model_api 模块中的请求方法
     print("Agent Answer:", result)
 # 测试结束: Ebeddeing 模型

@@ -51,6 +51,12 @@ class ModelProvider:
                 "endpoint": os.getenv("MOONSHOT_ENDPOINT"),
                 "api_key": os.getenv("MOONSHOT_API_KEY"),
             }
+        elif vendor == 'ollama':
+            return {
+                "type": "ollama",
+                "endpoint": os.getenv("OLLAMA_ENDPOINT", 'http://localhost:11434/v1'),
+                "api_key": os.getenv("OLLAMA_API_KEY"),
+            }
         else:
             return {
                 "type": "openai",
@@ -100,7 +106,7 @@ def get_response(prompt, model_spec="zhipu:glm-4-flash", image_path=None):
     if model_variant is None:
         raise ValueError("DEFAULT_MODEL 环境变量未设置")
     
-    if config["type"] in ["openai", "deepseek", "dashscope", "zhipu", "moonshot"]:
+    if config["type"] in ["openai", "deepseek", "dashscope", "zhipu", "moonshot", "ollama"]:
         base_url = config["endpoint"]
         api_key = config["api_key"]
         client = openai.OpenAI(base_url=base_url, api_key=api_key)
@@ -143,7 +149,7 @@ def embedding(input, model_spec="dashscope:text-embedding-v3", dimensions=1024, 
     if model_spec is None:
         model_spec = os.getenv("DEFAULT_EMBEDDING_MODEL")
     config, model_variant = parse_model_spec(model_spec)
-    if config["type"] in ["openai", "deepseek", "dashscope", "zhipu", "moonshot"]:
+    if config["type"] in ["openai", "deepseek", "dashscope", "zhipu", "moonshot", "ollama"]:
         base_url = config["endpoint"]
         api_key = config["api_key"]
         client = openai.OpenAI(base_url=base_url, api_key=api_key)
@@ -151,4 +157,5 @@ def embedding(input, model_spec="dashscope:text-embedding-v3", dimensions=1024, 
             model=model_variant, input=input, dimensions=dimensions
         )
         return response
+    raise ValueError("未知的服务商类型")
 # 功能结束: embedding 模型
