@@ -3,7 +3,7 @@
 # 功能开始: 导入必要模块
 import os
 from dotenv import load_dotenv
-from model_api import get_response
+from model_api import get_response, embedding
 # 功能结束: 导入必要模块
 
 # 功能开始: 加载环境变量
@@ -34,12 +34,22 @@ def test_vlm_model():
     print("Agent Answer:", result)
 # 测试结束: 视觉理解 模型
 
+# 测试开始: Ebeddeing 模型
+def test_embedding_model():
+    user_input = "What is the meaning of life?"
+    model_spec = "dashscope:text-embedding-v3"
+    result = embedding(input=user_input, model_spec=model_spec)  # 调用 model_api 模块中的请求方法
+    print("Agent Answer:", result)
+# 测试结束: Ebeddeing 模型
+
 # 功能开始: 主程序入口
 if __name__ == "__main__":
     
     # test_text_model()
-    print("====================================")
+    # print("====================================")
     # test_vlm_model()
+    # print("====================================")
+    test_embedding_model()
     
     
 # 功能结束: 主程序入口

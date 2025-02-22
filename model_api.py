@@ -74,7 +74,14 @@ def encode_image(image_path):
         return image_format, base64.b64encode(f.read()).decode("utf-8")
 # 功能结束: encode image to base64
 
-# 功能开始: 定义请求处理方法
+def parse_model_spec(model_spec):
+    vendor = model_spec.split(":")[0]
+    config = ModelProvider.get_vendor_config(vendor=vendor)
+    model_variant = model_spec.split(":")[1]
+    return config, model_variant
+
+
+# 功能开始: 文本模型及视觉理解模型请求处理方法
 def get_response(prompt, model_spec="zhipu:glm-4-flash", image_path=None):
     """
     根据服务商配置调用对应 API 生成回复
@@ -84,9 +91,7 @@ def get_response(prompt, model_spec="zhipu:glm-4-flash", image_path=None):
     """
     if model_spec is None:
         model_spec = os.getenv("DEFAULT_MODEL")
-    vendor = model_spec.split(":")[0]
-    config = ModelProvider.get_vendor_config(vendor=vendor)
-    model_variant = model_spec.split(":")[1]
+    config, model_variant = parse_model_spec(model_spec)
     
     if image_path is not None:
         if not os.path.exists(image_path):
@@ -131,4 +136,19 @@ def get_response(prompt, model_spec="zhipu:glm-4-flash", image_path=None):
     return reply
 
 
-# 功能结束: 定义请求处理方法
+# 功能结束: 文本模型及视觉理解模型请求处理方法
+
+# 功能开始: embedding 模型
+def embedding(input, model_spec="dashscope:text-embedding-v3", dimensions=1024, **kwargs):
+    if model_spec is None:
+        model_spec = os.getenv("DEFAULT_EMBEDDING_MODEL")
+    config, model_variant = parse_model_spec(model_spec)
+    if config["type"] in ["openai", "deepseek", "dashscope", "zhipu", "moonshot"]:
+        base_url = config["endpoint"]
+        api_key = config["api_key"]
+        client = openai.OpenAI(base_url=base_url, api_key=api_key)
+        response = client.embeddings.create(
+            model=model_variant, input=input, dimensions=dimensions
+        )
+        return response
+# 功能结束: embedding 模型
