@@ -6,6 +6,12 @@ import openai
 from google import genai
 
 import base64
+
+# 从 .env 文件中加载环境变量
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # 功能结束: 导入必要模块
 
 
@@ -88,7 +94,7 @@ def parse_model_spec(model_spec):
 
 
 # 功能开始: 文本模型及视觉理解模型请求处理方法
-def get_response(prompt, model_spec="zhipu:glm-4-flash", image_path=None):
+def chat(prompt, model_spec="zhipu:glm-4-flash", image_path=None):
     """
     根据服务商配置调用对应 API 生成回复
     参数:
