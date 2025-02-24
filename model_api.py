@@ -15,6 +15,8 @@ load_dotenv()
 # 功能结束: 导入必要模块
 
 
+OPENAI_VENDOR_LIST = ["openai", "deepseek", "dashscope", "zhipu", "moonshot", "volcengine", "ollama"]
+
 # 功能开始: 定义服务商选择器类
 class ModelProvider:
     @staticmethod
@@ -56,6 +58,12 @@ class ModelProvider:
                 "type": "moonshot",
                 "endpoint": os.getenv("MOONSHOT_ENDPOINT"),
                 "api_key": os.getenv("MOONSHOT_API_KEY"),
+            }
+        elif vendor == 'volcengine': # 火山引擎
+            return {
+                "type": "volcengine",
+                "endpoint": os.getenv("VOLCENGINE_ENDPOINT"),
+                "api_key": os.getenv("VOLCENGINE_API_KEY"),
             }
         elif vendor == 'ollama':
             return {
@@ -112,7 +120,7 @@ def chat(prompt, model_spec="zhipu:glm-4-flash", image_path=None):
     if model_variant is None:
         raise ValueError("DEFAULT_MODEL 环境变量未设置")
     
-    if config["type"] in ["openai", "deepseek", "dashscope", "zhipu", "moonshot", "ollama"]:
+    if config["type"] in OPENAI_VENDOR_LIST:
         base_url = config["endpoint"]
         api_key = config["api_key"]
         client = openai.OpenAI(base_url=base_url, api_key=api_key)
@@ -155,7 +163,7 @@ def embedding(input, model_spec="dashscope:text-embedding-v3", dimensions=1024, 
     if model_spec is None:
         model_spec = os.getenv("DEFAULT_EMBEDDING_MODEL")
     config, model_variant = parse_model_spec(model_spec)
-    if config["type"] in ["openai", "deepseek", "dashscope", "zhipu", "moonshot", "ollama"]:
+    if config["type"] in OPENAI_VENDOR_LIST:
         base_url = config["endpoint"]
         api_key = config["api_key"]
         client = openai.OpenAI(base_url=base_url, api_key=api_key)
