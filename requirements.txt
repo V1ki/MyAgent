@@ -1,3 +1,5 @@
 openai
 python-dotenv
 google-genai
+langchain_core
+langchain_text_splitters
