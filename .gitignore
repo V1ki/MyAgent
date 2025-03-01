@@ -3,3 +3,4 @@ __pycache__/
 agent.md
 chromadb_data/
 **/.DS_Store
+.vscode/

@@ -15,7 +15,7 @@ load_dotenv()
 # 功能结束: 导入必要模块
 
 
-OPENAI_VENDOR_LIST = ["openai", "deepseek", "dashscope", "zhipu", "moonshot", "volcengine", "ollama"]
+OPENAI_VENDOR_LIST = ["openai", "deepseek", "dashscope", "zhipu", "moonshot", "volcengine", "ollama", "vllm", "gemini"]
 
 # 功能开始: 定义服务商选择器类
 class ModelProvider:
@@ -70,6 +70,12 @@ class ModelProvider:
                 "type": "ollama",
                 "endpoint": os.getenv("OLLAMA_ENDPOINT", 'http://localhost:11434/v1'),
                 "api_key": os.getenv("OLLAMA_API_KEY"),
+            }
+        elif vendor == 'vllm':
+            return {
+                "type": "vllm",
+                "endpoint": os.getenv("VLLM_ENDPOINT"),
+                "api_key": os.getenv("VLLM_API_KEY"),
             }
         else:
             return {
@@ -137,7 +143,8 @@ def chat(prompt, model_spec="zhipu:glm-4-flash", image_path=None):
         response = client.chat.completions.create(
             model=model_variant, messages=[
                 {"role": "user", "content": content}
-            ]
+            ],
+            temperature=0.6
         )
         reply = response.choices[0].message.content
     elif config["type"] == "gemini":
