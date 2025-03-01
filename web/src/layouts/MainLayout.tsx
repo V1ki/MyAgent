@@ -6,6 +6,7 @@ import {
   UserOutlined,
   DashboardOutlined,
   SettingOutlined,
+  ApiOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
 
@@ -28,6 +29,11 @@ const MainLayout: React.FC = () => {
       key: '/users',
       icon: <UserOutlined />,
       label: '用户管理',
+    },
+    {
+      key: '/models',
+      icon: <ApiOutlined />,
+      label: '模型提供商',
     },
     {
       key: '/settings',

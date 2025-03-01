@@ -2,6 +2,7 @@ import { createRouter, createRoute, createRootRoute } from '@tanstack/react-rout
 import Dashboard from '../pages/Dashboard'
 import UserManagement from '../pages/UserManagement'
 import Settings from '../pages/Settings'
+import ModelProviders from '../pages/ModelProviders'
 import MainLayout from '../layouts/MainLayout'
 
 const rootRoute = createRootRoute({
@@ -20,6 +21,12 @@ const userRoute = createRoute({
   component: UserManagement,
 })
 
+const modelsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/models',
+  component: ModelProviders,
+})
+
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/settings',
@@ -27,7 +34,7 @@ const settingsRoute = createRoute({
 })
 
 
-const routeTree = rootRoute.addChildren([indexRoute, userRoute, settingsRoute])
+const routeTree = rootRoute.addChildren([indexRoute, userRoute, modelsRoute, settingsRoute])
 
 export const router = createRouter({ routeTree })
 
