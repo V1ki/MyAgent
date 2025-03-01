@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { screen, waitFor,fireEvent } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { renderWithRouter } from '../test/test-utils'
+import { renderWithRouter } from '../../test/test-utils'
 
 describe('ModelProviders Page', () => {
   beforeEach(async () => {
