@@ -5,7 +5,7 @@ import { renderWithRouter } from '../../test/test-utils'
 
 describe('ModelProviders Page', () => {
   beforeEach(async () => {
-    await renderWithRouter('/models')
+    await renderWithRouter('/model-providers')
   })
 
   it('should render model providers page with initial data', async () => {
@@ -273,7 +273,6 @@ describe('ModelProviders Page', () => {
   })
 
   it('should delete API key after confirmation', async () => {
-    await renderWithRouter('/models')
     // Navigate to key management screen
     const manageKeyButtons = screen.getAllByRole('button', { name: /管理密钥/ })
     await userEvent.click(manageKeyButtons[0])

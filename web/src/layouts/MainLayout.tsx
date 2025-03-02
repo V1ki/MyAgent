@@ -7,6 +7,7 @@ import {
   DashboardOutlined,
   SettingOutlined,
   ApiOutlined,
+  AppstoreOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
 
@@ -31,9 +32,21 @@ const MainLayout: React.FC = () => {
       label: '用户管理',
     },
     {
-      key: '/models',
-      icon: <ApiOutlined />,
-      label: '模型提供商',
+      key: 'models-submenu',
+      icon: <AppstoreOutlined />,
+      label: '模型管理',
+      children: [
+        {
+          key: '/models',
+          icon: <AppstoreOutlined />,
+          label: '模型',
+        },
+        {
+          key: '/model-providers',
+          icon: <ApiOutlined />,
+          label: '模型提供商',
+        },
+      ],
     },
     {
       key: '/settings',
@@ -50,6 +63,7 @@ const MainLayout: React.FC = () => {
           theme="dark"
           mode="inline"
           defaultSelectedKeys={['/']}
+          defaultOpenKeys={['models-submenu']}
           items={menuItems}
           onSelect={({ key }) => navigate({ to: key as string })}
         />

@@ -3,6 +3,7 @@ import Dashboard from '../pages/Dashboard'
 import UserManagement from '../pages/UserManagement'
 import Settings from '../pages/Settings'
 import ModelProviders from '../pages/ModelProviders'
+import Models from '../pages/Models'
 import MainLayout from '../layouts/MainLayout'
 
 const rootRoute = createRootRoute({
@@ -24,6 +25,12 @@ const userRoute = createRoute({
 const modelsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/models',
+  component: Models,
+})
+
+const modelProvidersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/model-providers',
   component: ModelProviders,
 })
 
@@ -33,8 +40,7 @@ const settingsRoute = createRoute({
   component: Settings,
 })
 
-
-const routeTree = rootRoute.addChildren([indexRoute, userRoute, modelsRoute, settingsRoute])
+const routeTree = rootRoute.addChildren([indexRoute, userRoute, modelsRoute, modelProvidersRoute, settingsRoute])
 
 export const router = createRouter({ routeTree })
 
