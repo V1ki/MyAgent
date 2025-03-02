@@ -224,7 +224,7 @@ describe('ModelProviders Page', () => {
     await userEvent.click(manageKeyButtons[0])
     
     // Get initial key count
-    const initialKeyCount = screen.getAllByRole('listitem').length
+    const initialKeyCount = screen.getAllByRole('row').length
     
     // Open add key modal
     await userEvent.click(screen.getByRole('button', { name: /添加密钥/ }))
@@ -238,7 +238,7 @@ describe('ModelProviders Page', () => {
     await userEvent.click(cancelButton)
     
     // Verify key was not added
-    const newKeyCount = screen.getAllByRole('listitem').length
+    const newKeyCount = screen.getAllByRole('row').length
     expect(newKeyCount).toBe(initialKeyCount)
     expect(screen.queryByText('取消测试密钥')).not.toBeInTheDocument()
   })
@@ -249,7 +249,7 @@ describe('ModelProviders Page', () => {
     await userEvent.click(manageKeyButtons[0])
     
     // Find original key name to edit
-    const firstKeyText = screen.getAllByRole('listitem')[0].textContent
+    const firstKeyText = screen.getAllByRole('row')[0].textContent
     
     // Click edit on first key
     const editButtons = screen.getAllByRole('button', { name: /编辑/ })
@@ -266,7 +266,7 @@ describe('ModelProviders Page', () => {
     
     // Verify the key name did not change
     await waitFor(() => {
-      const updatedKeyText = screen.getAllByRole('listitem')[0].textContent
+      const updatedKeyText = screen.getAllByRole('row')[0].textContent
       expect(updatedKeyText).toBe(firstKeyText)
       expect(screen.queryByText('不保存的修改')).not.toBeInTheDocument()
     })
@@ -278,10 +278,10 @@ describe('ModelProviders Page', () => {
     await userEvent.click(manageKeyButtons[0])
     
     // Get initial key count
-    const initialKeyCount = screen.getAllByRole('listitem').length
+    const initialKeyCount = screen.getAllByRole('row').length
 
-    // Get name of key to be deleted for verification
-    const keyToDeleteText = screen.getAllByRole('listitem')[0].textContent
+    // Get name of key to be deleted for verification , first row is the header
+    const keyToDeleteText = screen.getAllByRole('row')[1].textContent
     
     // Delete first key
     const deleteButtons = screen.getAllByRole('button', { name: /删除/ })
@@ -293,11 +293,11 @@ describe('ModelProviders Page', () => {
     
     // Verify key was deleted
     await waitFor(() => {
-      const newKeyCount = screen.getAllByRole('listitem').length
-      expect(newKeyCount).toBe(initialKeyCount - 3) // each key has 3 list items
+      const newKeyCount = screen.getAllByRole('row').length
+      expect(newKeyCount).toBe(initialKeyCount - 1) 
       
       // Verify the specific key no longer exists
-      const remainingKeysText = screen.getAllByRole('listitem').map(item => item.textContent)
+      const remainingKeysText = screen.getAllByRole('row').map(item => item.textContent)
       expect(remainingKeysText).not.toContain(keyToDeleteText)
     })
   })
