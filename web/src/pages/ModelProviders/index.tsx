@@ -14,6 +14,7 @@ interface ModelProvider {
   id: string;
   name: string;
   baseUrl: string;
+  description?: string; // Optional description field
   apiKeys: ApiKey[];
 }
 
@@ -23,6 +24,7 @@ const ModelProviders: React.FC = () => {
       id: '1', 
       name: 'OpenAI', 
       baseUrl: 'https://api.openai.com',
+      description: 'OpenAI GPT-series models API provider',
       apiKeys: [
         { id: '101', alias: '默认', key: 'sk-***********' },
         { id: '102', alias: '高级账户', key: 'sk-***********' }
@@ -32,6 +34,7 @@ const ModelProviders: React.FC = () => {
       id: '2', 
       name: 'Anthropic', 
       baseUrl: 'https://api.anthropic.com',
+      description: 'Claude model series API provider',
       apiKeys: [
         { id: '201', alias: '默认', key: 'sk-***********' }
       ]
@@ -52,6 +55,12 @@ const ModelProviders: React.FC = () => {
       title: '名称',
       dataIndex: 'name',
       key: 'name',
+    },
+    {
+      title: '描述',
+      dataIndex: 'description',
+      key: 'description',
+      render: (text: string) => text || '-',
     },
     {
       title: 'API密钥数量',
@@ -99,6 +108,7 @@ const ModelProviders: React.FC = () => {
     form.setFieldsValue({
       name: record.name,
       baseUrl: record.baseUrl,
+      description: record.description,
     });
     setIsModalVisible(true);
   };
@@ -122,7 +132,12 @@ const ModelProviders: React.FC = () => {
       if (editingProviderId) {
         // 更新现有提供商
         const updatedProviders = providers.map(p => 
-          p.id === editingProviderId ? { ...p, name: values.name, baseUrl: values.baseUrl } : p
+          p.id === editingProviderId ? { 
+            ...p, 
+            name: values.name, 
+            baseUrl: values.baseUrl,
+            description: values.description
+          } : p
         );
         setProviders(updatedProviders);
         message.success('提供商更新成功');
@@ -132,6 +147,7 @@ const ModelProviders: React.FC = () => {
           id: `provider-${Date.now()}`,
           name: values.name,
           baseUrl: values.baseUrl,
+          description: values.description,
           apiKeys: values.initialKeyAlias && values.initialKey ? [
             {
               id: `key-${Date.now()}`,
@@ -253,6 +269,9 @@ const ModelProviders: React.FC = () => {
             <div>
               <p><strong>提供商名称:</strong> {currentProvider.name}</p>
               <p><strong>接口地址:</strong> {currentProvider.baseUrl}</p>
+              {currentProvider.description && (
+                <p><strong>描述:</strong> {currentProvider.description}</p>
+              )}
             </div>
             <Button 
               type="primary" 
@@ -345,6 +364,18 @@ const ModelProviders: React.FC = () => {
             rules={[{ required: true, message: '请输入接口地址' }]}
           >
             <Input placeholder="例如: https://api.openai.com" />
+          </Form.Item>
+          <Form.Item
+            name="description"
+            label="描述"
+            rules={[{ max: 200, message: '描述不能超过200个字符' }]}
+          >
+            <Input.TextArea 
+              placeholder="提供商描述信息 (可选, 最多200字符)" 
+              showCount 
+              maxLength={200} 
+              autoSize={{ minRows: 2, maxRows: 4 }} 
+            />
           </Form.Item>
           
           {!editingProviderId && (

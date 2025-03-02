@@ -7,6 +7,7 @@ classDiagram
         id: string
         name: string
         baseUrl: string
+        description: string (optional, max 200 chars)
         apiKeys: ApiKey[]
     }
     
