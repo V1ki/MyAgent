@@ -4,3 +4,4 @@ agent.md
 chromadb_data/
 **/.DS_Store
 .vscode/
+web/coverage/
