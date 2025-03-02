@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
-import { Table, Button, Modal, Form, Input, Space, Popconfirm, message, List, Typography } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, KeyOutlined } from '@ant-design/icons';
+import { 
+  Table, Button, Modal, Form, Input, Space, Popconfirm, 
+  message, List, Typography, Tag, Card, Tooltip 
+} from 'antd';
+import { 
+  EditOutlined, DeleteOutlined, PlusOutlined, 
+  KeyOutlined, InfoCircleOutlined 
+} from '@ant-design/icons';
 
 const { Text } = Typography;
 
@@ -91,6 +97,7 @@ const ModelProviders: React.FC = () => {
           </Button>
           <Popconfirm
             title="确定删除此提供商?"
+            description="删除提供商将同时删除所有相关的API密钥"
             onConfirm={() => handleDelete(record.id)}
             okText="是"
             cancelText="否"
@@ -238,110 +245,147 @@ const ModelProviders: React.FC = () => {
     });
   };
 
-  return (
-    <div>
-      <div className="flex justify-between mb-4">
-        <h1 className="text-2xl font-bold" data-testid="page-title">模型提供商管理</h1>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          onClick={showAddModal}
-        >
-          添加提供商
-        </Button>
-      </div>
+  // 返回提供商列表
+  const returnToProviderList = () => {
+    setCurrentProvider(null);
+  };
 
-      {currentProvider ? (
-        <div>
-          <div className="flex items-center mb-4">
+  // 密钥列表表格列定义
+  const keyColumns = [
+    {
+      title: '别名',
+      dataIndex: 'alias',
+      key: 'alias',
+    },
+    {
+      title: 'API密钥',
+      dataIndex: 'key',
+      key: 'key',
+      render: () => '••••••••••••••••',
+    },
+    {
+      title: '操作',
+      key: 'action',
+      render: (_, record: ApiKey) => (
+        <Space size="middle">
+          <Button 
+            icon={<EditOutlined />} 
+            onClick={() => handleEditKey(record)}
+          >
+            编辑
+          </Button>
+          <Popconfirm
+            title="确定删除此密钥?"
+            onConfirm={() => handleDeleteKey(record.id)}
+            okText="是"
+            cancelText="否"
+          >
+            <Button danger icon={<DeleteOutlined />}>删除</Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  // 渲染密钥管理页面
+  const renderKeyManagement = () => {
+    if (!currentProvider) return null;
+
+    return (
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center">
             <Button 
-              onClick={() => setCurrentProvider(null)} 
+              onClick={returnToProviderList} 
               className="mr-2"
             >
               返回
             </Button>
-            <h2 className="text-xl">
+            <h2 className="text-xl m-0">
               {currentProvider.name} 的 API 密钥管理
             </h2>
           </div>
-
-          <div className="bg-white p-4 rounded mb-4 flex justify-between items-center">
-            <div>
-              <p><strong>提供商名称:</strong> {currentProvider.name}</p>
-              <p><strong>接口地址:</strong> {currentProvider.baseUrl}</p>
-              {currentProvider.description && (
-                <p><strong>描述:</strong> {currentProvider.description}</p>
-              )}
-            </div>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              onClick={showAddKeyModal}
-            >
-              添加密钥
-            </Button>
-          </div>
-
-          <div className="bg-white p-4 rounded">
-            <List
-              itemLayout="horizontal"
-              dataSource={currentProvider.apiKeys}
-              renderItem={key => (
-                <List.Item
-                  actions={[
-                    <Button icon={<EditOutlined />} onClick={() => handleEditKey(key)}>编辑</Button>,
-                    <Popconfirm
-                      title="确定删除此密钥?"
-                      onConfirm={() => handleDeleteKey(key.id)}
-                      okText="是"
-                      cancelText="否"
-                    >
-                      <Button danger icon={<DeleteOutlined />}>删除</Button>
-                    </Popconfirm>
-                  ]}
-                >
-                  <List.Item.Meta
-                    title={key.alias}
-                    description={`密钥: ${'*'.repeat(8)}`}
-                  />
-                </List.Item>
-              )}
-            />
-          </div>
-
-          <Modal
-            title={editingKeyId ? "编辑密钥" : "添加密钥"}
-            open={isKeyModalVisible}
-            onOk={handleKeyModalOk}
-            onCancel={() => setIsKeyModalVisible(false)}
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={showAddKeyModal}
           >
-            <Form form={keyForm} layout="vertical">
-              <Form.Item
-                name="alias"
-                label="别名"
-                rules={[{ required: true, message: '请输入密钥别名' }]}
-              >
-                <Input placeholder="例如: 默认, 测试, 生产环境" />
-              </Form.Item>
-              <Form.Item
-                name="key"
-                label="API密钥"
-                rules={[{ required: true, message: '请输入API密钥' }]}
-              >
-                <Input.Password placeholder="例如: sk-..." />
-              </Form.Item>
-            </Form>
-          </Modal>
+            添加密钥
+          </Button>
         </div>
-      ) : (
+
+        <div className="bg-white p-4 rounded mb-4">
+          <p><strong>提供商名称:</strong> {currentProvider.name}</p>
+          <p><strong>接口地址:</strong> {currentProvider.baseUrl}</p>
+          {currentProvider.description && (
+            <p><strong>描述:</strong> {currentProvider.description}</p>
+          )}
+        </div>
+
         <div className="bg-white p-4 rounded">
           <Table 
-            columns={columns} 
-            dataSource={providers} 
+            columns={keyColumns} 
+            dataSource={currentProvider.apiKeys} 
             rowKey="id"
             pagination={false}
           />
         </div>
+
+        <Modal
+          title={editingKeyId ? "编辑密钥" : "添加密钥"}
+          open={isKeyModalVisible}
+          onOk={handleKeyModalOk}
+          onCancel={() => setIsKeyModalVisible(false)}
+        >
+          <Form form={keyForm} layout="vertical">
+            <Form.Item
+              name="alias"
+              label="别名"
+              rules={[{ required: true, message: '请输入密钥别名' }]}
+            >
+              <Input placeholder="例如: 默认, 测试, 生产环境" />
+            </Form.Item>
+            <Form.Item
+              name="key"
+              label="API密钥"
+              rules={[{ required: true, message: '请输入API密钥' }]}
+            >
+              <Input.Password placeholder="例如: sk-..." />
+            </Form.Item>
+          </Form>
+        </Modal>
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      {currentProvider ? (
+        // 密钥管理视图
+        renderKeyManagement()
+      ) : (
+        // 提供商列表视图
+        <>
+          <div className="flex justify-between mb-4">
+            <h1 className="text-2xl font-bold" data-testid="page-title">模型提供商管理</h1>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={showAddModal}
+            >
+              添加提供商
+            </Button>
+          </div>
+
+          <div className="bg-white p-4 rounded">
+            <Table 
+              columns={columns} 
+              dataSource={providers} 
+              rowKey="id"
+              pagination={false}
+            />
+          </div>
+        </>
       )}
 
       <Modal
