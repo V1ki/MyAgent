@@ -17,7 +17,22 @@ classDiagram
         key: string
     }
     
+    class ModelImplementation {
+        id: string
+        providerId: string
+        modelId: string
+        providerModelId: string
+        version: string
+        contextWindow: number
+        pricingInfo: object
+        isAvailable: boolean
+        customParameters: object
+    }
+    
+    
     ModelProvider "1" --> "*" ApiKey : contains
+
+    ModelProvider "1" --> "*" ModelImplementation : provides
 ```
 
 ## 提供商管理流程图
@@ -46,6 +61,29 @@ flowchart TD
     M --> B
     
     C -->|管理密钥| N[进入密钥管理界面]
+```
+
+## API密钥管理流程图
+```mermaid
+flowchart TD
+    A[进入密钥管理] --> B{选择操作}
+    
+    B -->|添加密钥| C[打开添加密钥模态框]
+    C --> D[填写密钥信息]
+    D --> E[提交表单]
+    E --> A
+    
+    B -->|编辑密钥| F[打开编辑密钥模态框]
+    F --> G[修改密钥信息]
+    G --> H[提交表单]
+    H --> A
+    
+    B -->|删除密钥| I[显示删除确认]
+    I -->|确认| J[删除密钥]
+    I -->|取消| A
+    J --> A
+    
+    B -->|返回| K[返回提供商列表]
 ```
 
 ## 组件状态管理
