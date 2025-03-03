@@ -24,6 +24,7 @@ interface FrontendModelProvider {
   baseUrl: string;
   description?: string;
   apiKeys: FrontendApiKey[];
+  apiKeysCount: number;
 }
 
 // Helper function to convert backend data to frontend format
@@ -36,7 +37,8 @@ const toFrontendProvider = (provider: ModelProvider): FrontendModelProvider => (
     id: key.id,
     alias: key.alias,
     key: key.key_preview || '••••••••••••••••'
-  })) || []
+  })) || [],
+  apiKeysCount: provider.api_keys_count || 0
 });
 
 const ModelProviders: React.FC = () => {
@@ -116,7 +118,7 @@ const ModelProviders: React.FC = () => {
     {
       title: 'API密钥数量',
       key: 'apiKeysCount',
-      render: (_, record: FrontendModelProvider) => record.apiKeys.length,
+      render: (_, record: FrontendModelProvider) => record.apiKeysCount || record.apiKeys.length,
     },
     {
       title: '接口地址',

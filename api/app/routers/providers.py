@@ -4,20 +4,28 @@ from typing import List
 from uuid import UUID
 
 from app.db.database import get_db
-from app.models.schemas import ModelProviderCreate, ModelProviderRead, ModelProviderDetailedRead, ModelProviderUpdate
+from app.models.schemas import ModelProviderCreate, ModelProviderRead, ModelProviderDetailedRead, ModelProviderUpdate, ModelProviderListRead
 from app.services.provider_service import ProviderService, ApiKeyService
 
 router = APIRouter(prefix="/providers", tags=["providers"])
 
-@router.get("/", response_model=List[ModelProviderRead])
+@router.get("/", response_model=List[ModelProviderListRead])
 def get_providers(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
     db: Session = Depends(get_db)
 ):
-    """Get all model providers with pagination."""
+    """Get all model providers with pagination and API key counts."""
     providers = ProviderService.get_providers(db, skip=skip, limit=limit)
-    return providers
+    
+    # Transform the providers to include API key count
+    result = []
+    for provider in providers:
+        provider_data = ModelProviderListRead.model_validate(provider)
+        provider_data.api_keys_count = len(provider.api_keys)
+        result.append(provider_data)
+    
+    return result
 
 @router.get("/{provider_id}", response_model=ModelProviderDetailedRead)
 def get_provider(

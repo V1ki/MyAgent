@@ -137,6 +137,19 @@ GET /providers/
 - `limit`: 整数，每页数量，默认为 100，最大为 100
 
 响应：
+```json
+[
+  {
+    "id": "uuid",
+    "name": "提供商名称",
+    "base_url": "https://api.provider.com",
+    "description": "描述信息",
+    "api_keys_count": 2  // API密钥的数量
+  }
+]
+```
+
+状态码：
 - 200：提供商列表
 - 500：服务器错误
 

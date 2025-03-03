@@ -16,6 +16,7 @@ export interface ModelProvider {
   base_url: string; // Note: snake_case from backend
   description?: string;
   api_keys?: ApiKey[]; // Only included in detailed responses
+  api_keys_count?: number; // Count of API keys for list responses
 }
 
 // Helper function for fetch requests
@@ -67,7 +68,7 @@ export const providerService = {
       name: provider.name,
       base_url: provider.base_url,
       description: provider.description,
-      initial_key: initialKey ? {
+      initial_api_key: initialKey ? {
         alias: initialKey.alias,
         key: initialKey.key
       } : undefined

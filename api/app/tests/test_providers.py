@@ -193,3 +193,48 @@ def test_delete_provider_with_keys(client):
     # Verify the provider is gone
     response = client.get(f"/providers/{provider_id}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+def test_get_providers_with_api_key_count(client):
+    """Test that the providers list endpoint returns the correct API key count."""
+    # Create a provider with an initial key
+    response = client.post(
+        "/providers/",
+        json={
+            "name": "ProviderWithKeys",
+            "base_url": "https://api.provider-with-keys.com",
+            "initial_api_key": {
+                "alias": "InitialKey",
+                "key": "sk-initial-12345678"
+            }
+        }
+    )
+    provider_id = response.json()["id"]
+    
+    # Add another API key
+    client.post(
+        f"/providers/{provider_id}/keys",
+        json={
+            "alias": "SecondKey",
+            "key": "sk-second-12345678"
+        }
+    )
+    
+    # Create another provider without keys
+    client.post(
+        "/providers/",
+        json={
+            "name": "ProviderWithoutKeys",
+            "base_url": "https://api.provider-without-keys.com"
+        }
+    )
+    
+    # Get all providers and verify the API key counts
+    response = client.get("/providers/")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    
+    provider_with_keys = next(p for p in data if p["name"] == "ProviderWithKeys")
+    provider_without_keys = next(p for p in data if p["name"] == "ProviderWithoutKeys")
+    
+    assert provider_with_keys["api_keys_count"] == 2
+    assert provider_without_keys["api_keys_count"] == 0

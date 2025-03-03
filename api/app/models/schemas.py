@@ -69,6 +69,10 @@ class ModelProviderRead(ModelProviderBase):
     
     model_config = ConfigDict(from_attributes=True)
 
+class ModelProviderListRead(ModelProviderRead):
+    api_keys_count: int = 0
+    
+    model_config = ConfigDict(from_attributes=True)
 
 class ModelProviderDetailedRead(ModelProviderRead):
     api_keys: List[ApiKeyReadWithMaskedKey] = []
