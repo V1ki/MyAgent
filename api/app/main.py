@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 
 from app.routers import providers, api_keys
 from app.db.database import init_pgvector
@@ -19,14 +20,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize pgvector extension
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup tasks
     try:
         init_pgvector()
     except Exception as e:
         print(f"Warning: Failed to initialize pgvector extension: {e}")
-        # Continue anyway, as this might be a test environment
+    yield
+    # Shutdown tasks (if any) can be added here
+    
 
 # Include routers
 app.include_router(providers.router)
