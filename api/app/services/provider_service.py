@@ -5,7 +5,6 @@ from typing import List, Optional
 from app.models.provider import ModelProvider, ApiKey
 from app.models.schemas import ModelProviderCreate, ModelProviderUpdate, ApiKeyCreate, ApiKeyUpdate
 
-
 class ProviderService:
     @staticmethod
     def get_providers(db: Session, skip: int = 0, limit: int = 100) -> List[ModelProvider]:

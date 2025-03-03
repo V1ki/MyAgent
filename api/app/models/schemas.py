@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import List, Optional, Dict, Any, Union
 from uuid import UUID
-
+from datetime import datetime
 
 # API Key schemas
 class ApiKeyBase(BaseModel):
@@ -110,3 +110,39 @@ class ModelImplementationRead(ModelImplementationBase):
     provider_id: UUID
     
     model_config = ConfigDict(from_attributes=True)
+
+
+# Model schemas
+class ModelCreate(BaseModel):
+    name: str = Field(..., description="Name of the model")
+    description: Optional[str] = Field(None, description="Description of the model")
+    capabilities: List[str] = Field(..., description="List of model capabilities")
+    family: str = Field(..., description="Model family (e.g., GPT-4, Claude, Gemini)")
+
+class ModelUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    capabilities: Optional[List[str]] = None
+    family: Optional[str] = None
+
+class ModelRead(BaseModel):
+    id: UUID
+    name: str
+    description: Optional[str] = None
+    capabilities: List[str]
+    family: str
+
+    class Config:
+        from_attributes = True
+
+class ModelDetailedRead(ModelRead):
+    implementations: List['ModelImplementationRead'] = []
+
+    class Config:
+        from_attributes = True
+
+class ModelListRead(ModelRead):
+    implementations_count: int = 0
+
+    class Config:
+        from_attributes = True

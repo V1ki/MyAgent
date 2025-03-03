@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from app.routers import providers, api_keys
+from app.routers import providers, api_keys, models
 from app.db.database import init_pgvector
 
 app = FastAPI(
@@ -34,6 +34,7 @@ async def lifespan(app: FastAPI):
 # Include routers
 app.include_router(providers.router)
 app.include_router(api_keys.router)
+app.include_router(models.router)
 
 @app.get("/")
 async def root():
