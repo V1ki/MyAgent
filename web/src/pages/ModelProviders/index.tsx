@@ -1,59 +1,104 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Table, Button, Modal, Form, Input, Space, Popconfirm, 
-  message, List, Typography, Tag, Card, Tooltip 
+  message, Typography, Spin, Alert
 } from 'antd';
 import { 
   EditOutlined, DeleteOutlined, PlusOutlined, 
-  KeyOutlined, InfoCircleOutlined 
+  KeyOutlined, InfoCircleOutlined, ReloadOutlined
 } from '@ant-design/icons';
+import { providerService, apiKeyService, ModelProvider, ApiKey } from '../../services/api';
 
 const { Text } = Typography;
 
-interface ApiKey {
+// Interface for our frontend component (maps backend data to frontend format)
+interface FrontendApiKey {
   id: string;
   alias: string;
   key: string;
 }
 
-interface ModelProvider {
+interface FrontendModelProvider {
   id: string;
   name: string;
   baseUrl: string;
-  description?: string; // Optional description field
-  apiKeys: ApiKey[];
+  description?: string;
+  apiKeys: FrontendApiKey[];
 }
 
+// Helper function to convert backend data to frontend format
+const toFrontendProvider = (provider: ModelProvider): FrontendModelProvider => ({
+  id: provider.id,
+  name: provider.name,
+  baseUrl: provider.base_url,
+  description: provider.description,
+  apiKeys: provider.api_keys?.map(key => ({
+    id: key.id,
+    alias: key.alias,
+    key: key.key_preview || '••••••••••••••••'
+  })) || []
+});
+
 const ModelProviders: React.FC = () => {
-  const [providers, setProviders] = useState<ModelProvider[]>([
-    { 
-      id: '1', 
-      name: 'OpenAI', 
-      baseUrl: 'https://api.openai.com',
-      description: 'OpenAI GPT-series models API provider',
-      apiKeys: [
-        { id: '101', alias: '默认', key: 'sk-***********' },
-        { id: '102', alias: '高级账户', key: 'sk-***********' }
-      ]
-    },
-    { 
-      id: '2', 
-      name: 'Anthropic', 
-      baseUrl: 'https://api.anthropic.com',
-      description: 'Claude model series API provider',
-      apiKeys: [
-        { id: '201', alias: '默认', key: 'sk-***********' }
-      ]
-    },
-  ]);
+  const [providers, setProviders] = useState<FrontendModelProvider[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isKeyModalVisible, setIsKeyModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [keyForm] = Form.useForm();
   const [editingProviderId, setEditingProviderId] = useState<string | null>(null);
-  const [currentProvider, setCurrentProvider] = useState<ModelProvider | null>(null);
+  const [currentProvider, setCurrentProvider] = useState<FrontendModelProvider | null>(null);
   const [editingKeyId, setEditingKeyId] = useState<string | null>(null);
+
+  // Fetch providers on component mount
+  useEffect(() => {
+    fetchProviders();
+  }, []);
+
+  // Fetch all providers
+  const fetchProviders = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await providerService.getProviders();
+      setProviders(data.map(toFrontendProvider));
+    } catch (err) {
+      console.error('Failed to fetch providers:', err);
+      setError('Failed to load model providers. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch a specific provider with API keys
+  const fetchProvider = async (id: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await providerService.getProvider(id);
+      const frontendProvider = toFrontendProvider(data);
+      
+      // Update providers list with the fetched provider
+      setProviders(prev => 
+        prev.map(p => p.id === frontendProvider.id ? frontendProvider : p)
+      );
+      
+      // If we're viewing this provider's details, update that too
+      if (currentProvider && currentProvider.id === id) {
+        setCurrentProvider(frontendProvider);
+      }
+      
+      return frontendProvider;
+    } catch (err) {
+      console.error(`Failed to fetch provider ${id}:`, err);
+      setError('Failed to load provider details. Please try again later.');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // 表格列定义
   const columns = [
@@ -71,7 +116,7 @@ const ModelProviders: React.FC = () => {
     {
       title: 'API密钥数量',
       key: 'apiKeysCount',
-      render: (_, record: ModelProvider) => record.apiKeys.length,
+      render: (_, record: FrontendModelProvider) => record.apiKeys.length,
     },
     {
       title: '接口地址',
@@ -81,7 +126,7 @@ const ModelProviders: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: ModelProvider) => (
+      render: (_: any, record: FrontendModelProvider) => (
         <Space size="middle">
           <Button 
             icon={<KeyOutlined />} 
@@ -110,7 +155,7 @@ const ModelProviders: React.FC = () => {
   ];
 
   // 处理编辑提供商
-  const handleEdit = (record: ModelProvider) => {
+  const handleEdit = (record: FrontendModelProvider) => {
     setEditingProviderId(record.id);
     form.setFieldsValue({
       name: record.name,
@@ -121,9 +166,18 @@ const ModelProviders: React.FC = () => {
   };
 
   // 处理删除提供商
-  const handleDelete = (id: string) => {
-    setProviders(providers.filter(provider => provider.id !== id));
-    message.success('删除成功');
+  const handleDelete = async (id: string) => {
+    try {
+      setLoading(true);
+      await providerService.deleteProvider(id);
+      setProviders(providers.filter(provider => provider.id !== id));
+      message.success('删除成功');
+    } catch (err) {
+      console.error('Failed to delete provider:', err);
+      message.error('删除失败，请稍后重试');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 处理添加提供商
@@ -134,45 +188,66 @@ const ModelProviders: React.FC = () => {
   };
 
   // 处理提供商模态框确认
-  const handleModalOk = () => {
-    form.validateFields().then(values => {
+  const handleModalOk = async () => {
+    try {
+      const values = await form.validateFields();
+      
       if (editingProviderId) {
         // 更新现有提供商
-        const updatedProviders = providers.map(p => 
-          p.id === editingProviderId ? { 
-            ...p, 
-            name: values.name, 
-            baseUrl: values.baseUrl,
-            description: values.description
-          } : p
-        );
-        setProviders(updatedProviders);
+        setLoading(true);
+        await providerService.updateProvider(editingProviderId, {
+          name: values.name,
+          base_url: values.baseUrl,
+          description: values.description
+        });
+        
+        // Refresh the provider data
+        await fetchProvider(editingProviderId);
+        
         message.success('提供商更新成功');
       } else {
         // 添加新提供商
-        const newProvider = {
-          id: `provider-${Date.now()}`,
+        setLoading(true);
+        const initialKey = values.initialKeyAlias && values.initialKey
+          ? { alias: values.initialKeyAlias, key: values.initialKey }
+          : undefined;
+        
+        await providerService.createProvider({
           name: values.name,
-          baseUrl: values.baseUrl,
-          description: values.description,
-          apiKeys: values.initialKeyAlias && values.initialKey ? [
-            {
-              id: `key-${Date.now()}`,
-              alias: values.initialKeyAlias,
-              key: values.initialKey
-            }
-          ] : []
-        };
-        setProviders([...providers, newProvider]);
+          base_url: values.baseUrl,
+          description: values.description
+        }, initialKey);
+        
+        // Refresh providers list
+        await fetchProviders();
+        
         message.success('添加成功');
       }
+      
       setIsModalVisible(false);
-    });
+    } catch (err) {
+      console.error('Failed to save provider:', err);
+      message.error('保存失败，请稍后重试');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 管理密钥
-  const handleManageKeys = (provider: ModelProvider) => {
-    setCurrentProvider(provider);
+  const handleManageKeys = async (provider: FrontendModelProvider) => {
+    try {
+      // Fetch fresh data for this provider including keys
+      setLoading(true);
+      const freshProvider = await fetchProvider(provider.id);
+      if (freshProvider) {
+        setCurrentProvider(freshProvider);
+      }
+    } catch (err) {
+      console.error('Failed to fetch provider details:', err);
+      message.error('无法加载提供商详情，请稍后重试');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 添加密钥
@@ -183,66 +258,72 @@ const ModelProviders: React.FC = () => {
   };
 
   // 编辑密钥
-  const handleEditKey = (key: ApiKey) => {
+  const handleEditKey = (key: FrontendApiKey) => {
     setEditingKeyId(key.id);
     keyForm.setFieldsValue({
       alias: key.alias,
-      key: key.key
+      key: '' // Don't pre-fill key for security
     });
     setIsKeyModalVisible(true);
   };
 
   // 删除密钥
-  const handleDeleteKey = (keyId: string) => {
+  const handleDeleteKey = async (keyId: string) => {
     if (!currentProvider) return;
     
-    const updatedProvider = {
-      ...currentProvider,
-      apiKeys: currentProvider.apiKeys.filter(k => k.id !== keyId)
-    };
-
-    setProviders(
-      providers.map(p => p.id === updatedProvider.id ? updatedProvider : p)
-    );
-    
-    setCurrentProvider(updatedProvider);
-    message.success('密钥删除成功');
+    try {
+      setLoading(true);
+      await apiKeyService.deleteApiKey(keyId);
+      
+      // Refresh provider to get updated keys
+      await fetchProvider(currentProvider.id);
+      
+      message.success('密钥删除成功');
+    } catch (err) {
+      console.error('Failed to delete API key:', err);
+      message.error('删除失败，请稍后重试');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 处理密钥模态框确认
-  const handleKeyModalOk = () => {
+  const handleKeyModalOk = async () => {
     if (!currentProvider) return;
 
-    keyForm.validateFields().then(values => {
-      let updatedKeys;
+    try {
+      const values = await keyForm.validateFields();
+      
       if (editingKeyId) {
         // 更新现有密钥
-        updatedKeys = currentProvider.apiKeys.map(k => 
-          k.id === editingKeyId ? { ...k, alias: values.alias, key: values.key } : k
-        );
+        setLoading(true);
+        await apiKeyService.updateApiKey(editingKeyId, {
+          alias: values.alias,
+          key: values.key || undefined // Only send key if provided
+        });
+        
         message.success('密钥更新成功');
       } else {
         // 添加新密钥
-        const newKey = {
-          id: `key-${Date.now()}`,
+        setLoading(true);
+        await apiKeyService.createApiKey(currentProvider.id, {
           alias: values.alias,
           key: values.key
-        };
-        updatedKeys = [...currentProvider.apiKeys, newKey];
+        });
+        
         message.success('密钥添加成功');
       }
-
-      const updatedProvider = {
-        ...currentProvider,
-        apiKeys: updatedKeys
-      };
-
-      setProviders(
-        providers.map(p => p.id === currentProvider.id ? updatedProvider : p)
-      );
-      setCurrentProvider(updatedProvider);
+      
+      // Refresh provider to get updated keys
+      await fetchProvider(currentProvider.id);
+      
       setIsKeyModalVisible(false);
-    });
+    } catch (err) {
+      console.error('Failed to save API key:', err);
+      message.error('保存失败，请稍后重试');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 返回提供商列表
@@ -266,7 +347,7 @@ const ModelProviders: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_, record: ApiKey) => (
+      render: (_, record: FrontendApiKey) => (
         <Space size="middle">
           <Button 
             icon={<EditOutlined />} 
@@ -328,6 +409,7 @@ const ModelProviders: React.FC = () => {
             dataSource={currentProvider.apiKeys} 
             rowKey="id"
             pagination={false}
+            loading={loading}
           />
         </div>
 
@@ -336,6 +418,7 @@ const ModelProviders: React.FC = () => {
           open={isKeyModalVisible}
           onOk={handleKeyModalOk}
           onCancel={() => setIsKeyModalVisible(false)}
+          confirmLoading={loading}
         >
           <Form form={keyForm} layout="vertical">
             <Form.Item
@@ -348,7 +431,10 @@ const ModelProviders: React.FC = () => {
             <Form.Item
               name="key"
               label="API密钥"
-              rules={[{ required: true, message: '请输入API密钥' }]}
+              rules={[
+                { required: !editingKeyId, message: '请输入API密钥' }
+              ]}
+              help={editingKeyId ? "留空表示不更改密钥" : undefined}
             >
               <Input.Password placeholder="例如: sk-..." />
             </Form.Item>
@@ -358,41 +444,63 @@ const ModelProviders: React.FC = () => {
     );
   };
 
+  const renderContent = () => {
+    if (error) {
+      return (
+        <Alert
+          message="错误"
+          description={error}
+          type="error"
+          showIcon
+          action={
+            <Button size="small" icon={<ReloadOutlined />} onClick={fetchProviders}>
+              重试
+            </Button>
+          }
+        />
+      );
+    }
+
+    if (currentProvider) {
+      return renderKeyManagement();
+    }
+
+    return (
+      <>
+        <div className="flex justify-between mb-4">
+          <h1 className="text-2xl font-bold" data-testid="page-title">模型提供商管理</h1>
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={showAddModal}
+          >
+            添加提供商
+          </Button>
+        </div>
+
+        <div className="bg-white p-4 rounded">
+          <Table 
+            columns={columns} 
+            dataSource={providers} 
+            rowKey="id"
+            pagination={false}
+            loading={loading}
+          />
+        </div>
+      </>
+    );
+  };
+
   return (
     <div>
-      {currentProvider ? (
-        // 密钥管理视图
-        renderKeyManagement()
-      ) : (
-        // 提供商列表视图
-        <>
-          <div className="flex justify-between mb-4">
-            <h1 className="text-2xl font-bold" data-testid="page-title">模型提供商管理</h1>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              onClick={showAddModal}
-            >
-              添加提供商
-            </Button>
-          </div>
-
-          <div className="bg-white p-4 rounded">
-            <Table 
-              columns={columns} 
-              dataSource={providers} 
-              rowKey="id"
-              pagination={false}
-            />
-          </div>
-        </>
-      )}
+      {renderContent()}
 
       <Modal
         title={editingProviderId ? '编辑提供商' : '添加提供商'}
         open={isModalVisible}
         onOk={handleModalOk}
         onCancel={() => setIsModalVisible(false)}
+        confirmLoading={loading}
       >
         <Form form={form} layout="vertical">
           <Form.Item
