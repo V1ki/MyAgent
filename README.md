@@ -13,16 +13,91 @@
 ## 项目进度
 目前处于项目最开始的阶段,很多功能还没有实现,欢迎大家一起来完善这个项目, 后续会逐步增加功能列表以及 TODO 列表。
 
+### 已实现功能
+- **模型提供商管理**：支持添加、编辑和删除不同的模型提供商（如OpenAI、Anthropic等）
+- **API密钥管理**：每个提供商可配置多个API密钥，实现负载均衡和备份
+- **模型管理**：支持管理不同的模型类型及其实现，包括模型能力、定价信息等
+- **模型实现管理**：管理同一模型在不同提供商的不同实现版本
+
+## 项目架构
+
+### 前端技术栈
+- React + TypeScript
+- Ant Design UI组件库
+- React Router用于路由管理
+- Fetch API用于后端数据交互
+
+### 后端技术栈
+- FastAPI (Python)
+- SQLAlchemy ORM
+- PostgreSQL 数据库
+- Alembic 数据库迁移
+
+### 系统架构图
+```
++-------------+        +------------+        +------------+
+|             |  API   |            |  ORM   |            |
+|  Web前端    | <----> |  后端API   | <----> |  数据库    |
+|  (React)    |  调用  | (FastAPI)  |  操作  |(PostgreSQL)|
+|             |        |            |        |            |
++-------------+        +------------+        +------------+
+```
+
 ## 项目特点
 
 - **Python 实现：** 利用 Python 的简洁性和生态系统的丰富性构建框架。
 - **模块化设计：** 代码结构清晰，方便扩展和定制。
 - **易用性高：** 从零开始构建 Agent 框架，让使用者能够快速上手。
 - **开放源代码：** 欢迎社区贡献，共同完善功能。
+- **完整测试覆盖：** 前后端均有单元测试和集成测试保证质量。
+
+## 数据模型图
+```mermaid
+classDiagram
+    class ModelProvider {
+        id: string
+        name: string
+        baseUrl: string
+        description: string
+        apiKeys: ApiKey[]
+    }
+    
+    class Model {
+        id: string
+        name: string
+        description: string
+        capabilities: string[]
+        family: string
+    }
+    
+    class ModelImplementation {
+        id: string
+        providerId: string
+        modelId: string
+        providerModelId: string
+        version: string
+        contextWindow: number
+        pricingInfo: PricingInfo
+        isAvailable: boolean
+    }
+    
+    class ApiKey {
+        id: string
+        providerId: string
+        alias: string
+        key: string
+    }
+    
+    ModelProvider "1" --> "*" ModelImplementation : provides
+    Model "1" --> "*" ModelImplementation : implemented_as
+    ModelProvider "1" --> "*" ApiKey : has
+```
 
 ## 环境要求
 
 - Python 3.7 或以上版本
+- Node.js 14.0 或以上版本
+- PostgreSQL 13.0 或以上版本
 - 推荐使用虚拟环境（如 `venv` 或 `virtualenv`）
 
 ## 安装指南
@@ -34,13 +109,25 @@
    cd MyAgent
    ```
 
-2. **安装依赖：**
+2. **后端设置：**
 
    ```bash
+   cd api
    pip install -r requirements.txt
+   cp .env.example .env  # 配置环境变量
+   alembic upgrade head  # 执行数据库迁移
+   uvicorn app.main:app --reload  # 启动后端服务
    ```
 
-3. **设置环境变量：**
+3. **前端设置：**
+
+   ```bash
+   cd web
+   npm install
+   npm run dev  # 启动开发服务器
+   ```
+
+4. **设置环境变量：**
 ```bash  
 cp .env.example .env
 ``` 

@@ -1,217 +1,96 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Table, Button, Modal, Form, Input, Space, Popconfirm, 
-  message, Select, Tag, Card, Tabs, Tooltip
+  message, Select, Tag, Tooltip, Spin, Alert
 } from 'antd';
 import { 
   EditOutlined, DeleteOutlined, PlusOutlined, 
-  ApiOutlined, LinkOutlined, InfoCircleOutlined 
+  ApiOutlined, InfoCircleOutlined, ReloadOutlined
 } from '@ant-design/icons';
 import { useNavigate } from '@tanstack/react-router';
+import { modelService, FrontendModel, FrontendModelImplementation } from '../../services/model';
+import { providerService, ModelProvider } from '../../services/api';
 
-const { TabPane } = Tabs;
 const { Option } = Select;
 
-// 数据模型接口定义
-interface ModelProvider {
-  id: string;
-  name: string;
-  baseUrl: string;
-  description?: string;
-}
-
-interface Model {
-  id: string;
-  name: string;
-  description?: string;
-  capabilities: string[];
-  family: string;
-}
-
-interface ModelImplementation {
-  id: string;
-  providerId: string;
-  modelId: string;
-  providerModelId: string;
-  version: string;
-  contextWindow?: number;
-  pricingInfo?: PricingInfo;
-  isAvailable: boolean;
-  customParameters?: Record<string, any>;
-}
-
-interface PricingInfo {
-  currency: string;
-  billingMode: "token" | "request" | "minute" | "hybrid";
-  inputPrice?: number;
-  outputPrice?: number;
-  requestPrice?: number;
-  minutePrice?: number;
-  tiers?: PricingTier[];
-  specialFeatures?: FeaturePricing[];
-  freeAllowance?: Allowance;
-  minimumCharge?: number;
-  effectiveDate?: string;
-  notes?: string;
-}
-
-interface PricingTier {
-  tierName: string;
-  volumeThreshold: number;
-  inputPrice?: number;
-  outputPrice?: number;
-  requestPrice?: number;
-}
-
-interface FeaturePricing {
-  featureName: string;
-  additionalPrice: number;
-  priceUnit: string;
-}
-
-interface Allowance {
-  tokens?: number;
-  requests?: number;
-  validPeriod?: string;
-}
-
-// 示例数据
-const initialModels: Model[] = [
-  {
-    id: '1',
-    name: 'GPT-4o',
-    description: 'OpenAI\'s most powerful multimodal model',
-    capabilities: ['text-generation', 'function-calling', 'vision'],
-    family: 'GPT-4'
-  },
-  {
-    id: '2',
-    name: 'Claude-3 Opus',
-    description: 'Anthropic\'s most powerful model',
-    capabilities: ['text-generation', 'function-calling', 'vision'],
-    family: 'Claude'
-  },
-  {
-    id: '3',
-    name: 'Gemini-1.5-Pro',
-    description: 'Google\'s most advanced model',
-    capabilities: ['text-generation', 'function-calling'],
-    family: 'Gemini'
-  }
-];
-
-// 示例提供商数据
-const initialProviders: ModelProvider[] = [
-  { 
-    id: '1', 
-    name: 'OpenAI', 
-    baseUrl: 'https://api.openai.com',
-    description: 'OpenAI GPT-series models API provider',
-  },
-  { 
-    id: '2', 
-    name: 'Anthropic', 
-    baseUrl: 'https://api.anthropic.com',
-    description: 'Claude model series API provider',
-  },
-  {
-    id: '3',
-    name: 'Google AI Studio',
-    baseUrl: 'https://ai.google.dev/',
-    description: 'Google AI models API provider',
-  }
-];
-
-// 示例模型实现数据
-const initialModelImplementations: ModelImplementation[] = [
-  {
-    id: '101',
-    providerId: '1', // OpenAI
-    modelId: '1', // GPT-4o
-    providerModelId: 'gpt-4o',
-    version: '2023-05',
-    contextWindow: 128000,
-    isAvailable: true,
-    pricingInfo: {
-      currency: 'USD',
-      billingMode: 'token',
-      inputPrice: 5,
-      outputPrice: 15,
-    }
-  },
-  {
-    id: '102',
-    providerId: '1', // OpenAI
-    modelId: '1', // GPT-4o
-    providerModelId: 'gpt-4o-mini',
-    version: '2023-05',
-    contextWindow: 128000,
-    isAvailable: true,
-    pricingInfo: {
-      currency: 'USD',
-      billingMode: 'token',
-      inputPrice: 3,
-      outputPrice: 6,
-    }
-  },
-  {
-    id: '201',
-    providerId: '2', // Anthropic
-    modelId: '2', // Claude-3 Opus
-    providerModelId: 'claude-3-opus-20240229',
-    version: '2024-02',
-    contextWindow: 200000,
-    isAvailable: true,
-    pricingInfo: {
-      currency: 'USD',
-      billingMode: 'token',
-      inputPrice: 15,
-      outputPrice: 75,
-    }
-  },
-  {
-    id: '301',
-    providerId: '3', // Google
-    modelId: '3', // Gemini-1.5-Pro
-    providerModelId: 'gemini-1.5-pro',
-    version: '2024-05',
-    contextWindow: 1000000,
-    isAvailable: true,
-    pricingInfo: {
-      currency: 'USD',
-      billingMode: 'token',
-      inputPrice: 3.5,
-      outputPrice: 10.5,
-    }
-  }
-];
-
 const Models: React.FC = () => {
-  // 状态管理
+  // State management
   const navigate = useNavigate();
-  const [models, setModels] = useState<Model[]>(initialModels);
-  const [providers, setProviders] = useState<ModelProvider[]>(initialProviders);
-  const [implementations, setImplementations] = useState<ModelImplementation[]>(initialModelImplementations);
+  const [models, setModels] = useState<FrontendModel[]>([]);
+  const [providers, setProviders] = useState<ModelProvider[]>([]);
+  const [implementations, setImplementations] = useState<FrontendModelImplementation[]>([]);
   
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingModelId, setEditingModelId] = useState<string | null>(null);
-  const [currentModel, setCurrentModel] = useState<Model | null>(null);
+  const [currentModel, setCurrentModel] = useState<FrontendModel | null>(null);
   const [form] = Form.useForm();
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // 跳转到模型实现管理页面
-  const navigateToModelImplementations = (model: Model) => {
-    setCurrentModel(model);
+  // Fetch initial data
+  useEffect(() => {
+    fetchModels();
+    fetchProviders();
+  }, []);
+
+  // Fetch all models
+  const fetchModels = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await modelService.getModels();
+      setModels(data);
+    } catch (err) {
+      console.error('Failed to fetch models:', err);
+      setError('Failed to load models. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // 显示添加模型弹窗
+  // Fetch all providers
+  const fetchProviders = async () => {
+    try {
+      const data = await providerService.getProviders();
+      setProviders(data);
+    } catch (err) {
+      console.error('Failed to fetch providers:', err);
+      message.error('Failed to load providers. Some features may be limited.');
+    }
+  };
+
+  // Fetch model implementations for a specific model
+  const fetchModelImplementations = async (modelId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await modelService.getModelImplementations(modelId);
+      setImplementations(data);
+      return data;
+    } catch (err) {
+      console.error(`Failed to fetch implementations for model ${modelId}:`, err);
+      setError('Failed to load model implementations. Please try again later.');
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Navigate to model implementations management page
+  const navigateToModelImplementations = async (model: FrontendModel) => {
+    setCurrentModel(model);
+    await fetchModelImplementations(model.id);
+  };
+
+  // Show add model modal
   const showAddModal = () => {
     form.resetFields();
     setEditingModelId(null);
     setIsModalVisible(true);
   };
 
-  // 处理编辑模型
-  const handleEdit = (record: Model) => {
+  // Handle edit model
+  const handleEdit = (record: FrontendModel) => {
     form.setFieldsValue({
       name: record.name,
       description: record.description || '',
@@ -222,55 +101,65 @@ const Models: React.FC = () => {
     setIsModalVisible(true);
   };
 
-  // 处理删除模型
-  const handleDelete = (id: string) => {
-    // 检查是否有与此模型关联的实现
-    const hasImplementations = implementations.some(imp => imp.modelId === id);
-    
-    if (hasImplementations) {
-      message.error('此模型有相关的实现，请先删除这些实现');
-      return;
+  // Handle delete model
+  const handleDelete = async (id: string) => {
+    try {
+      // Check if model has implementations
+      const implementations = await fetchModelImplementations(id);
+      if (implementations.length > 0) {
+        message.error('This model has related implementations. Please delete those first.');
+        return;
+      }
+      
+      setLoading(true);
+      await modelService.deleteModel(id);
+      setModels(models.filter(model => model.id !== id));
+      message.success('Model successfully deleted');
+    } catch (err) {
+      console.error('Failed to delete model:', err);
+      message.error('Failed to delete model. Please try again later.');
+    } finally {
+      setLoading(false);
     }
-    
-    setModels(models.filter(model => model.id !== id));
-    message.success('模型已成功删除');
   };
 
-  // 处理弹窗确认
+  // Handle modal confirmation
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields();
       
       if (editingModelId) {
-        // 更新现有模型
+        // Update existing model
+        setLoading(true);
+        const updatedModel = await modelService.updateModel(editingModelId, values);
         setModels(models.map(model => 
           model.id === editingModelId 
-            ? { ...model, ...values } 
+            ? updatedModel 
             : model
         ));
-        message.success('模型已成功更新');
+        message.success('Model successfully updated');
       } else {
-        // 添加新模型
-        const newModel: Model = {
-          id: `m-${Date.now()}`, // 生成临时ID
-          ...values,
-        };
+        // Add new model
+        setLoading(true);
+        const newModel = await modelService.createModel(values);
         setModels([...models, newModel]);
-        message.success('模型已成功添加');
+        message.success('Model successfully added');
       }
       
       setIsModalVisible(false);
     } catch (error) {
-      console.error('表单验证失败:', error);
+      console.error('Form validation failed:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 返回模型列表
+  // Return to model list
   const returnToModelList = () => {
     setCurrentModel(null);
   };
 
-  // 表格列定义
+  // Table columns definition
   const columns = [
     {
       title: '名称',
@@ -311,13 +200,15 @@ const Models: React.FC = () => {
     {
       title: '实现数量',
       key: 'implementationsCount',
-      render: (_: any, record: Model) => 
-        implementations.filter(imp => imp.modelId === record.id).length,
+      render: (_: any, record: FrontendModel) => {
+        const modelImplementations = implementations.filter(imp => imp.modelId === record.id);
+        return modelImplementations.length;
+      },
     },
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: Model) => (
+      render: (_: any, record: FrontendModel) => (
         <Space size="middle">
           <Button 
             icon={<ApiOutlined />} 
@@ -345,75 +236,98 @@ const Models: React.FC = () => {
     },
   ];
 
-  // 模型实现相关操作
+  // Model implementation related operations
   const [implementationForm] = Form.useForm();
   const [isImplementationModalVisible, setIsImplementationModalVisible] = useState(false);
   const [editingImplementationId, setEditingImplementationId] = useState<string | null>(null);
 
-  // 显示添加模型实现弹窗
+  // Show add model implementation modal
   const showAddImplementationModal = () => {
     implementationForm.resetFields();
     setEditingImplementationId(null);
     setIsImplementationModalVisible(true);
   };
 
-  // 处理编辑模型实现
-  const handleEditImplementation = (implementation: ModelImplementation) => {
+  // Handle edit model implementation
+  const handleEditImplementation = (implementation: FrontendModelImplementation) => {
     implementationForm.setFieldsValue({
       providerId: implementation.providerId,
       providerModelId: implementation.providerModelId,
       version: implementation.version,
       contextWindow: implementation.contextWindow,
       isAvailable: implementation.isAvailable,
-      // 注意：复杂对象如pricingInfo可能需要特殊处理
+      // Note: complex objects like pricingInfo need special handling
+      pricingInfo: {
+        currency: implementation.pricingInfo?.currency || 'USD',
+        billingMode: implementation.pricingInfo?.billingMode || 'token',
+        inputPrice: implementation.pricingInfo?.inputPrice,
+        outputPrice: implementation.pricingInfo?.outputPrice,
+        notes: implementation.pricingInfo?.notes,
+      }
     });
     setEditingImplementationId(implementation.id);
     setIsImplementationModalVisible(true);
   };
 
-  // 处理删除模型实现
-  const handleDeleteImplementation = (id: string) => {
-    setImplementations(implementations.filter(imp => imp.id !== id));
-    message.success('模型实现已成功删除');
+  // Handle delete model implementation
+  const handleDeleteImplementation = async (id: string) => {
+    try {
+      setLoading(true);
+      await modelService.deleteModelImplementation(id);
+      setImplementations(implementations.filter(imp => imp.id !== id));
+      message.success('Model implementation successfully deleted');
+    } catch (err) {
+      console.error('Failed to delete model implementation:', err);
+      message.error('Failed to delete model implementation. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // 处理模型实现弹窗确认
+  // Handle model implementation modal confirmation
   const handleImplementationModalOk = async () => {
     try {
       const values = await implementationForm.validateFields();
       
       if (editingImplementationId) {
-        // 更新现有模型实现
+        // Update existing model implementation
+        setLoading(true);
+        const updatedImplementation = await modelService.updateModelImplementation(
+          editingImplementationId, 
+          values
+        );
         setImplementations(implementations.map(imp => 
           imp.id === editingImplementationId 
-            ? { ...imp, ...values } 
+            ? updatedImplementation 
             : imp
         ));
-        message.success('模型实现已成功更新');
-      } else {
-        // 添加新模型实现
-        const newImplementation: ModelImplementation = {
-          id: `imp-${Date.now()}`, // 生成临时ID
-          modelId: currentModel!.id,
+        message.success('Model implementation successfully updated');
+      } else if (currentModel) {
+        // Add new model implementation
+        setLoading(true);
+        const newImplementation = await modelService.createModelImplementation({
           ...values,
+          modelId: currentModel.id,
           isAvailable: true,
-        };
+        });
         setImplementations([...implementations, newImplementation]);
-        message.success('模型实现已成功添加');
+        message.success('Model implementation successfully added');
       }
       
       setIsImplementationModalVisible(false);
     } catch (error) {
-      console.error('表单验证失败:', error);
+      console.error('Form validation failed:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 模型实现表格列定义
+  // Model implementation table columns definition
   const implementationColumns = [
     {
       title: '提供商',
       key: 'provider',
-      render: (_: any, record: ModelImplementation) => {
+      render: (_: any, record: FrontendModelImplementation) => {
         const provider = providers.find(p => p.id === record.providerId);
         return provider ? provider.name : '-';
       },
@@ -437,7 +351,7 @@ const Models: React.FC = () => {
     {
       title: '定价信息',
       key: 'pricing',
-      render: (_: any, record: ModelImplementation) => {
+      render: (_: any, record: FrontendModelImplementation) => {
         if (!record.pricingInfo) return '-';
         
         const { currency, inputPrice, outputPrice } = record.pricingInfo;
@@ -471,7 +385,7 @@ const Models: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: ModelImplementation) => (
+      render: (_: any, record: FrontendModelImplementation) => (
         <Space size="middle">
           <Button 
             icon={<EditOutlined />} 
@@ -492,7 +406,7 @@ const Models: React.FC = () => {
     },
   ];
 
-  // 渲染模型实现列表
+  // Render model implementations list
   const renderImplementationsList = () => {
     if (!currentModel) return null;
     
@@ -537,14 +451,33 @@ const Models: React.FC = () => {
           <p><strong>模型系列:</strong> {currentModel.family}</p>
         </div>
 
-        <div className="bg-white p-4 rounded">
-          <Table 
-            columns={implementationColumns} 
-            dataSource={modelImplementations} 
-            rowKey="id"
-            pagination={false}
+        {error ? (
+          <Alert
+            message="错误"
+            description={error}
+            type="error"
+            showIcon
+            action={
+              <Button 
+                size="small" 
+                icon={<ReloadOutlined />} 
+                onClick={() => fetchModelImplementations(currentModel.id)}
+              >
+                重试
+              </Button>
+            }
           />
-        </div>
+        ) : (
+          <div className="bg-white p-4 rounded">
+            <Table 
+              columns={implementationColumns} 
+              dataSource={modelImplementations} 
+              rowKey="id"
+              pagination={false}
+              loading={loading}
+            />
+          </div>
+        )}
 
         <Modal
           title={editingImplementationId ? '编辑模型实现' : '添加模型实现'}
@@ -552,6 +485,7 @@ const Models: React.FC = () => {
           onOk={handleImplementationModalOk}
           onCancel={() => setIsImplementationModalVisible(false)}
           width={700}
+          confirmLoading={loading}
         >
           <Form form={implementationForm} layout="vertical">
             <Form.Item
@@ -593,13 +527,13 @@ const Models: React.FC = () => {
               <Input type="number" placeholder="例如: 128000" />
             </Form.Item>
 
-            <Tabs defaultActiveKey="1">
-              <TabPane tab="定价信息" key="1">
+            <Form.Item label="定价信息">
+              <Input.Group compact>
                 <Form.Item
                   name={['pricingInfo', 'currency']}
-                  label="货币"
+                  noStyle
                 >
-                  <Select placeholder="选择货币" defaultValue="USD">
+                  <Select placeholder="选择货币" defaultValue="USD" style={{ width: '30%' }}>
                     <Option value="USD">美元 (USD)</Option>
                     <Option value="CNY">人民币 (CNY)</Option>
                     <Option value="EUR">欧元 (EUR)</Option>
@@ -608,87 +542,115 @@ const Models: React.FC = () => {
                 
                 <Form.Item
                   name={['pricingInfo', 'billingMode']}
-                  label="计费模式"
+                  noStyle
                 >
-                  <Select placeholder="选择计费模式" defaultValue="token">
+                  <Select placeholder="选择计费模式" defaultValue="token" style={{ width: '30%' }}>
                     <Option value="token">按Token计费</Option>
                     <Option value="request">按请求计费</Option>
                     <Option value="minute">按时间计费</Option>
                     <Option value="hybrid">混合计费</Option>
                   </Select>
                 </Form.Item>
-                
-                <Form.Item
-                  name={['pricingInfo', 'inputPrice']}
-                  label="输入价格"
-                  tooltip="每1000 tokens的输入价格"
-                >
-                  <Input type="number" step="0.001" placeholder="例如: 0.01" />
-                </Form.Item>
-                
-                <Form.Item
-                  name={['pricingInfo', 'outputPrice']}
-                  label="输出价格"
-                  tooltip="每1000 tokens的输出价格"
-                >
-                  <Input type="number" step="0.001" placeholder="例如: 0.03" />
-                </Form.Item>
-                
-                <Form.Item
-                  name={['pricingInfo', 'notes']}
-                  label="备注"
-                >
-                  <Input.TextArea placeholder="添加定价相关的备注" />
-                </Form.Item>
-              </TabPane>
-              
-              <TabPane tab="自定义参数" key="2">
-                <p className="text-gray-500 mb-4">
-                  自定义参数功能将在后续版本中提供
-                </p>
-              </TabPane>
-            </Tabs>
+              </Input.Group>
+            </Form.Item>
+            
+            <Form.Item
+              name={['pricingInfo', 'inputPrice']}
+              label="输入价格"
+              tooltip="每1000 tokens的输入价格"
+            >
+              <Input type="number" step="0.001" placeholder="例如: 0.01" />
+            </Form.Item>
+            
+            <Form.Item
+              name={['pricingInfo', 'outputPrice']}
+              label="输出价格"
+              tooltip="每1000 tokens的输出价格"
+            >
+              <Input type="number" step="0.001" placeholder="例如: 0.03" />
+            </Form.Item>
+            
+            <Form.Item
+              name={['pricingInfo', 'notes']}
+              label="备注"
+            >
+              <Input.TextArea placeholder="添加定价相关的备注" />
+            </Form.Item>
+            
+            <Form.Item
+              name="isAvailable"
+              label="状态"
+              valuePropName="checked"
+            >
+              <Select defaultValue={true}>
+                <Option value={true}>可用</Option>
+                <Option value={false}>不可用</Option>
+              </Select>
+            </Form.Item>
           </Form>
         </Modal>
       </div>
     );
   };
 
+  // Render content based on error state
+  const renderContent = () => {
+    if (error && !currentModel) {
+      return (
+        <Alert
+          message="错误"
+          description={error}
+          type="error"
+          showIcon
+          action={
+            <Button size="small" icon={<ReloadOutlined />} onClick={fetchModels}>
+              重试
+            </Button>
+          }
+        />
+      );
+    }
+
+    if (currentModel) {
+      return renderImplementationsList();
+    }
+
+    return (
+      <>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold" data-testid="page-title">模型管理</h1>
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={showAddModal}
+          >
+            添加模型
+          </Button>
+        </div>
+
+        <div className="bg-white p-4 rounded">
+          <Table 
+            columns={columns} 
+            dataSource={models} 
+            rowKey="id"
+            pagination={false}
+            loading={loading}
+          />
+        </div>
+      </>
+    );
+  };
+
   return (
     <div>
-      {currentModel ? (
-        // 模型实现管理视图
-        renderImplementationsList()
-      ) : (
-        // 模型列表视图
-        <>
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold" data-testid="page-title">模型管理</h1>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              onClick={showAddModal}
-            >
-              添加模型
-            </Button>
-          </div>
-
-          <div className="bg-white p-4 rounded">
-            <Table 
-              columns={columns} 
-              dataSource={models} 
-              rowKey="id"
-              pagination={false}
-            />
-          </div>
-        </>
-      )}
+      {renderContent()}
 
       <Modal
         title={editingModelId ? '编辑模型' : '添加模型'}
         open={isModalVisible}
         onOk={handleModalOk}
         onCancel={() => setIsModalVisible(false)}
+        confirmLoading={loading}
       >
         <Form form={form} layout="vertical">
           <Form.Item

@@ -1,5 +1,8 @@
 # 模型管理页面
 
+## 系统架构概述
+
+模型管理页面提供了对LLM模型及其不同实现的管理功能。页面通过后端API与数据库交互，实现模型和模型实现的增删改查操作。
 
 ## 数据模型类图
 ```mermaid
@@ -27,14 +30,61 @@ classDiagram
         providerModelId: string
         version: string
         contextWindow: number
-        pricingInfo: object
+        pricingInfo: PricingInfo
         isAvailable: boolean
         customParameters: object
     }
     
+    class PricingInfo {
+        currency: string
+        billingMode: string
+        inputPrice: number
+        outputPrice: number
+        requestPrice: number
+        minutePrice: number
+        tiers: PricingTier[]
+        specialFeatures: FeaturePricing[]
+        freeAllowance: Allowance
+        minimumCharge: number
+        effectiveDate: string
+        notes: string
+    }
+
+    class PricingTier {
+        tierName: string
+        volumeThreshold: number
+        inputPrice: number
+        outputPrice: number
+        requestPrice: number
+    }
+
+    class FeaturePricing {
+        featureName: string
+        additionalPrice: number
+        priceUnit: string
+    }
+
+    class Allowance {
+        tokens: number
+        requests: number
+        validPeriod: string
+    }
+    
+    class ApiKey {
+        id: string
+        providerId: string
+        alias: string
+        key: string
+        keyPreview: string
+    }
+    
     ModelProvider "1" --> "*" ModelImplementation : provides
     Model "1" --> "*" ModelImplementation : implemented_as
-
+    ModelProvider "1" --> "*" ApiKey : has
+    ModelImplementation "1" --> "1" PricingInfo : has
+    PricingInfo "1" --> "*" PricingTier : contains
+    PricingInfo "1" --> "*" FeaturePricing : includes
+    PricingInfo "1" --> "0..1" Allowance : offers
 ```
 
 > For Examples:
@@ -65,52 +115,160 @@ ModelImplementations:
     version: "2023-05"
 ```
 
-### 关于 `PricingInfo` 的一些考虑
-```mermaid
-classDiagram
-    class ModelImplementation {
-    }
-    
-    class PricingInfo {
-        currency: string
-        billingMode: "token"|"request"|"minute"|"hybrid"
-        inputPrice: number
-        outputPrice: number
-        requestPrice: number
-        minutePrice: number
-        tiers: PricingTier[]
-        specialFeatures: FeaturePricing[]
-        freeAllowance: Allowance
-        minimumCharge: number
-        effectiveDate: string
-        notes: string
-    }
-    
-    class PricingTier {
-        tierName: string
-        volumeThreshold: number
-        inputPrice: number
-        outputPrice: number
-        requestPrice: number
-    }
-    
-    class FeaturePricing {
-        featureName: string
-        additionalPrice: number
-        priceUnit: string
-    }
-    
-    class Allowance {
-        tokens: number
-        requests: number
-        validPeriod: string
-    }
-    ModelImplementation "1" --> "1" PricingInfo : has
-    PricingInfo "1" --> "*" PricingTier : contains
-    PricingInfo "1" --> "*" FeaturePricing : includes
-    PricingInfo "1" --> "0..1" Allowance : offers
+## 前后端数据交互
 
+```mermaid
+sequenceDiagram
+    participant User
+    participant Component as Models Component
+    participant Service as Model Service
+    participant API as Backend API
+    participant DB as Database
+    
+    User->>Component: 访问模型管理页面
+    Component->>Service: 调用getModels()
+    Service->>API: GET /api/models
+    API->>DB: 查询所有模型
+    DB-->>API: 返回模型数据
+    API-->>Service: 返回模型列表
+    Service-->>Component: 处理并返回前端格式数据
+    Component-->>User: 显示模型列表
+    
+    User->>Component: 点击"添加模型"
+    Component-->>User: 显示添加模型表单
+    User->>Component: 填写并提交表单
+    Component->>Service: 调用createModel(model)
+    Service->>API: POST /api/models
+    API->>DB: 创建新模型
+    DB-->>API: 确认创建成功
+    API-->>Service: 返回新创建的模型
+    Service-->>Component: 处理并返回前端格式数据
+    Component-->>User: 更新模型列表
+    
+    User->>Component: 点击"管理实现"
+    Component->>Service: 调用getModelImplementations(modelId)
+    Service->>API: GET /api/models/{modelId}/implementations
+    API->>DB: 查询模型实现
+    DB-->>API: 返回模型实现数据
+    API-->>Service: 返回模型实现列表
+    Service-->>Component: 处理并返回前端格式数据
+    Component-->>User: 显示模型实现列表
+    
+    User->>Component: 点击"添加实现"
+    Component-->>User: 显示添加实现表单
+    User->>Component: 填写并提交表单
+    Component->>Service: 调用createModelImplementation(implementation)
+    Service->>API: POST /api/model-implementations
+    API->>DB: 创建新模型实现
+    DB-->>API: 确认创建成功
+    API-->>Service: 返回新创建的模型实现
+    Service-->>Component: 处理并返回前端格式数据
+    Component-->>User: 更新模型实现列表
 ```
+
+## 模型管理流程图
+
+```mermaid
+flowchart TD
+    A[进入页面] --> B[调用API加载模型列表]
+    B --> C{模型加载成功?}
+    C -->|失败| D[显示错误提示]
+    D --> E[用户点击重试]
+    E --> B
+    
+    C -->|成功| F[显示模型列表]
+    
+    F --> G{选择操作}
+    
+    G -->|添加模型| H[打开添加模型模态框]
+    H --> I[填写模型信息]
+    I --> J[调用API创建模型]
+    J --> K{API调用成功?}
+    K -->|否| L[显示错误消息]
+    L --> I
+    K -->|是| M[更新模型列表]
+    M --> F
+    
+    G -->|编辑模型| N[打开编辑模态框]
+    N --> O[修改模型信息]
+    O --> P[调用API更新模型]
+    P --> Q{API调用成功?}
+    Q -->|否| R[显示错误消息]
+    R --> O
+    Q -->|是| S[更新模型列表]
+    S --> F
+    
+    G -->|删除模型| T[显示删除确认]
+    T -->|确认| U[调用API删除模型]
+    U --> V{API调用成功?}
+    V -->|否| W[显示错误消息]
+    W --> F
+    V -->|是| X[从列表中移除]
+    X --> F
+    T -->|取消| F
+    
+    G -->|管理实现| Y[调用API获取模型实现]
+    Y --> Z{API调用成功?}
+    Z -->|否| AA[显示错误消息]
+    AA --> AB[用户点击重试]
+    AB --> Y
+    Z -->|是| AC[显示实现管理界面]
+```
+
+## 模型实现管理流程图
+
+```mermaid
+flowchart TD
+    A[进入模型实现管理] --> B[调用API加载模型实现]
+    B --> C{加载成功?}
+    C -->|否| D[显示错误提示]
+    D --> E[用户点击重试]
+    E --> B
+    C -->|是| F[显示模型实现列表]
+    
+    F --> G{选择操作}
+    
+    G -->|添加实现| H[打开添加实现模态框]
+    H --> I[填写实现信息]
+    I --> J[调用API创建实现]
+    J --> K{API调用成功?}
+    K -->|否| L[显示错误消息]
+    L --> I
+    K -->|是| M[更新实现列表]
+    M --> F
+    
+    G -->|编辑实现| N[打开编辑模态框]
+    N --> O[修改实现信息]
+    O --> P[调用API更新实现]
+    P --> Q{API调用成功?}
+    Q -->|否| R[显示错误消息]
+    R --> O
+    Q -->|是| S[更新实现列表]
+    S --> F
+    
+    G -->|删除实现| T[显示删除确认]
+    T -->|确认| U[调用API删除实现]
+    U --> V{API调用成功?}
+    V -->|否| W[显示错误消息]
+    W --> F
+    V -->|是| X[从列表中移除]
+    X --> F
+    T -->|取消| F
+    
+    G -->|返回| Y[返回模型管理页面]
+```
+
+## API与错误处理
+
+模型管理页面集成了完善的错误处理机制：
+
+1. **错误状态管理**：使用React状态管理错误消息，并在UI中展示友好的错误提示
+2. **重试机制**：提供重试按钮，允许用户在遇到API错误时重新加载数据
+3. **加载状态指示**：在异步操作过程中显示加载状态，提高用户体验
+
+API调用通过专门的服务层（modelService）进行封装，实现前后端数据格式的转换与统一错误处理。
+
+## 定价信息结构
 
 ```TypeScript
 interface PricingInfo {
@@ -156,57 +314,5 @@ interface PricingInfo {
   effectiveDate?: string; // 价格生效日期
   notes?: string; // 额外说明
 }
-```
-
-
-## 模型管理流程图
-
-```mermaid
-flowchart TD
-    A[进入页面] --> B[查看模型列表]
-    B --> C{选择操作}
-    
-    C -->|添加模型| D[打开添加模型模态框]
-    D --> E[填写模型信息]
-    E --> F{是否选择默认的提供商?}
-    F -->|是| G[选择默认的提供商]
-    F -->|否| H[提交表单]
-    G --> H
-    H --> B
-    
-    C -->|编辑模型| I[打开编辑模态框]
-    I --> J[修改模型信息]
-    J --> K[提交表单]
-    K --> B
-    
-    C -->|删除模型| L[显示删除确认]
-    L -->|确认| M[删除模型]
-    L -->|取消| B
-    M --> B
-    
-    C -->|管理提供商| N[进入模型-提供商管理界面]
-```
-
-## 模型-提供商管理流程
-```mermaid
-flowchart TD
-    A[进入模型-提供商管理界面] --> B{选择操作}
-    
-    B -->|添加模型-提供商| C[打开添加模型-提供商模态框]
-    C --> D[填写模型-提供商信息]
-    D --> E[提交表单]
-    E --> A
-    
-    B -->|编辑模型-提供商| F[打开编辑模型-提供商模态框]
-    F --> G[修改模型-提供商信息]
-    G --> H[提交表单]
-    H --> A
-    
-    B -->|删除模型-提供商| I[显示删除确认]
-    I -->|确认| J[删除模型-提供商]
-    I -->|取消| A
-    J --> A
-    
-    B -->|返回| K[返回模型列表]
 ```
 
