@@ -2,7 +2,7 @@
 
 ## 系统架构概述
 
-模型管理页面提供了对LLM模型及其不同实现的管理功能。页面通过后端API与数据库交互，实现模型和模型实现的增删改查操作。
+模型管理页面提供了对LLM模型及其不同实现的管理功能。页面通过后端API与数据库交互，实现模型和模型实现的增删改查操作。该模块支持多种模型提供商与其各自的模型实现，使系统能够灵活调用不同的AI能力。
 
 ## 数据模型类图
 ```mermaid
@@ -314,5 +314,62 @@ interface PricingInfo {
   effectiveDate?: string; // 价格生效日期
   notes?: string; // 额外说明
 }
+```
+
+## 组件状态管理
+
+模型管理页面使用 React 的状态管理机制来处理复杂的页面状态：
+
+1. **模型列表状态**
+   - `models`: 模型对象数组，存储从API获取的所有模型
+   - `selectedModel`: 当前选中的模型对象，用于编辑或管理实现
+   - `loading`: 布尔值，表示是否正在加载数据
+   - `error`: 错误对象，存储API请求错误信息
+
+2. **模态框状态**
+   - `isModelModalVisible`: 控制添加/编辑模型模态框的显示
+   - `isImplementationModalVisible`: 控制添加/编辑模型实现模态框的显示
+   - `isConfirmDeleteVisible`: 控制删除确认对话框的显示
+   - `modalMode`: 枚举值('add'|'edit')，表示当前模态框的模式
+
+3. **模型实现状态**
+   - `implementations`: 模型实现对象数组，存储当前选中模型的所有实现
+   - `selectedImplementation`: 当前选中的模型实现对象，用于编辑操作
+   - `implementationsLoading`: 布尔值，表示是否正在加载模型实现
+   - `implementationsError`: 错误对象，存储获取模型实现时的错误信息
+
+4. **表单状态**
+   - `modelForm`: 模型表单引用，用于处理表单验证和提交
+   - `implementationForm`: 模型实现表单引用，用于处理表单验证和提交
+   - `formErrors`: 对象，存储表单验证错误信息
+   - `submitting`: 布尔值，表示表单是否正在提交
+
+状态更新通过以下流程进行：
+- 组件挂载时，触发模型列表初始加载
+- 用户交互操作(点击、提交表单等)触发状态更新
+- 状态变化导致UI重新渲染，展示最新数据
+- API操作完成后，更新相关状态并刷新UI
+
+## 主要组件结构
+
+```
+Models/
+  ├── index.tsx                     # 模型管理主页面
+  ├── Models.test.tsx               # 模型管理测试用例
+  ├── Readme.md                     # 组件文档
+  │
+  ├── components/                   # 模型实现相关组件
+  │   ├── ModelForm.tsx             # 模型编辑/创建表单组件
+  │   ├── ModelList.tsx             # 模型列表展示组件
+  │   ├── ImplementationForm.tsx    # 实现编辑/创建表单
+  │   └── ImplementationList.tsx    # 实现列表展示组件
+  │
+  ├── hooks/                        # 自定义钩子
+  │   ├── useModels.tsx             # 模型数据管理钩子
+  │   └── useImplementations.tsx    # 实现数据管理钩子
+  |
+  └── types/
+      └── index.ts               # 类型定义文件
+
 ```
 
