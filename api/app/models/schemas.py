@@ -23,13 +23,6 @@ class ApiKeyCreate(ApiKeyBase):
 class ApiKeyUpdate(BaseModel):
     alias: Optional[str] = None
     key: Optional[str] = None
-    
-    @field_validator('key')
-    def validate_key_format(cls, v):
-        if v is not None and len(v) < 8:
-            raise ValueError("API key must be at least 8 characters long")
-        return v
-
 
 class ApiKeyRead(ApiKeyBase):
     id: UUID
