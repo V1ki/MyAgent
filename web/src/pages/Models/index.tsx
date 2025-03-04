@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Table, Button, Modal, Form, Input, Space, Popconfirm, 
+import {
+  Table, Button, Modal, Form, Input, Space, Popconfirm,
   message, Select, Tag, Tooltip, Spin, Alert
 } from 'antd';
-import { 
-  EditOutlined, DeleteOutlined, PlusOutlined, 
+import {
+  EditOutlined, DeleteOutlined, PlusOutlined,
   ApiOutlined, InfoCircleOutlined, ReloadOutlined
 } from '@ant-design/icons';
 import { useNavigate } from '@tanstack/react-router';
-import { modelService, FrontendModel, FrontendModelImplementation } from '../../services/model';
-import { providerService, ModelProvider } from '../../services/api';
+import { modelService, providerService, FrontendModel, FrontendModelImplementation, ModelProvider } from '../../services/api';
 
 const { Option } = Select;
 
@@ -19,7 +18,7 @@ const Models: React.FC = () => {
   const [models, setModels] = useState<FrontendModel[]>([]);
   const [providers, setProviders] = useState<ModelProvider[]>([]);
   const [implementations, setImplementations] = useState<FrontendModelImplementation[]>([]);
-  
+
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingModelId, setEditingModelId] = useState<string | null>(null);
   const [currentModel, setCurrentModel] = useState<FrontendModel | null>(null);
@@ -104,17 +103,11 @@ const Models: React.FC = () => {
   // Handle delete model
   const handleDelete = async (id: string) => {
     try {
-      // Check if model has implementations
-      const implementations = await fetchModelImplementations(id);
-      if (implementations.length > 0) {
-        message.error('This model has related implementations. Please delete those first.');
-        return;
-      }
-      
       setLoading(true);
       await modelService.deleteModel(id);
-      setModels(models.filter(model => model.id !== id));
       message.success('Model successfully deleted');
+      // 刷新模型列表
+      await fetchModels();
     } catch (err) {
       console.error('Failed to delete model:', err);
       message.error('Failed to delete model. Please try again later.');
@@ -127,28 +120,25 @@ const Models: React.FC = () => {
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields();
-      
+
       if (editingModelId) {
         // Update existing model
         setLoading(true);
-        const updatedModel = await modelService.updateModel(editingModelId, values);
-        setModels(models.map(model => 
-          model.id === editingModelId 
-            ? updatedModel 
-            : model
-        ));
+        await modelService.updateModel(editingModelId, values);
         message.success('Model successfully updated');
       } else {
         // Add new model
         setLoading(true);
-        const newModel = await modelService.createModel(values);
-        setModels([...models, newModel]);
+        await modelService.createModel(values);
         message.success('Model successfully added');
       }
-      
+
       setIsModalVisible(false);
+      // 刷新模型列表
+      await fetchModels();
     } catch (error) {
       console.error('Form validation failed:', error);
+      message.error('保存失败，请稍后重试');
     } finally {
       setLoading(false);
     }
@@ -210,14 +200,14 @@ const Models: React.FC = () => {
       key: 'action',
       render: (_: any, record: FrontendModel) => (
         <Space size="middle">
-          <Button 
-            icon={<ApiOutlined />} 
+          <Button
+            icon={<ApiOutlined />}
             onClick={() => navigateToModelImplementations(record)}
           >
             管理实现
           </Button>
-          <Button 
-            icon={<EditOutlined />} 
+          <Button
+            icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
           >
             编辑
@@ -274,8 +264,11 @@ const Models: React.FC = () => {
     try {
       setLoading(true);
       await modelService.deleteModelImplementation(id);
-      setImplementations(implementations.filter(imp => imp.id !== id));
       message.success('Model implementation successfully deleted');
+      // 如果当前有选中的模型，刷新其实现列表
+      if (currentModel) {
+        await fetchModelImplementations(currentModel.id);
+      }
     } catch (err) {
       console.error('Failed to delete model implementation:', err);
       message.error('Failed to delete model implementation. Please try again later.');
@@ -288,35 +281,36 @@ const Models: React.FC = () => {
   const handleImplementationModalOk = async () => {
     try {
       const values = await implementationForm.validateFields();
-      
+
       if (editingImplementationId) {
         // Update existing model implementation
         setLoading(true);
-        const updatedImplementation = await modelService.updateModelImplementation(
-          editingImplementationId, 
-          values
-        );
-        setImplementations(implementations.map(imp => 
-          imp.id === editingImplementationId 
-            ? updatedImplementation 
-            : imp
-        ));
+        await modelService.updateModelImplementation(editingImplementationId, values);
         message.success('Model implementation successfully updated');
       } else if (currentModel) {
-        // Add new model implementation
+        // Add new model implementation for the current model
         setLoading(true);
-        const newImplementation = await modelService.createModelImplementation({
-          ...values,
-          modelId: currentModel.id,
-          isAvailable: true,
+        await modelService.createModelImplementation(currentModel.id, {
+          providerId: values.providerId,
+          modelId: currentModel.id, // 显式设置 modelId
+          providerModelId: values.providerModelId,
+          version: values.version,
+          contextWindow: values.contextWindow,
+          pricingInfo: values.pricingInfo,
+          isAvailable: values.isAvailable,
+          customParameters: values.customParameters,
         });
-        setImplementations([...implementations, newImplementation]);
         message.success('Model implementation successfully added');
       }
-      
+
       setIsImplementationModalVisible(false);
+      // 如果当前有选中的模型，刷新其实现列表
+      if (currentModel) {
+        await fetchModelImplementations(currentModel.id);
+      }
     } catch (error) {
       console.error('Form validation failed:', error);
+      message.error('保存失败，请稍后重试');
     } finally {
       setLoading(false);
     }
@@ -353,10 +347,10 @@ const Models: React.FC = () => {
       key: 'pricing',
       render: (_: any, record: FrontendModelImplementation) => {
         if (!record.pricingInfo) return '-';
-        
+
         const { currency, inputPrice, outputPrice } = record.pricingInfo;
         return (
-          <Tooltip 
+          <Tooltip
             title={
               <div>
                 <p>输入: {inputPrice} {currency}/1K tokens</p>
@@ -387,8 +381,8 @@ const Models: React.FC = () => {
       key: 'action',
       render: (_: any, record: FrontendModelImplementation) => (
         <Space size="middle">
-          <Button 
-            icon={<EditOutlined />} 
+          <Button
+            icon={<EditOutlined />}
             onClick={() => handleEditImplementation(record)}
           >
             编辑
@@ -409,7 +403,7 @@ const Models: React.FC = () => {
   // Render model implementations list
   const renderImplementationsList = () => {
     if (!currentModel) return null;
-    
+
     const modelImplementations = implementations.filter(
       imp => imp.modelId === currentModel.id
     );
@@ -418,8 +412,8 @@ const Models: React.FC = () => {
       <div>
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center">
-            <Button 
-              onClick={returnToModelList} 
+            <Button
+              onClick={returnToModelList}
               className="mr-2"
             >
               返回
@@ -428,9 +422,9 @@ const Models: React.FC = () => {
               {currentModel.name} 的实现管理
             </h2>
           </div>
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
             onClick={showAddImplementationModal}
           >
             添加实现
@@ -458,9 +452,9 @@ const Models: React.FC = () => {
             type="error"
             showIcon
             action={
-              <Button 
-                size="small" 
-                icon={<ReloadOutlined />} 
+              <Button
+                size="small"
+                icon={<ReloadOutlined />}
                 onClick={() => fetchModelImplementations(currentModel.id)}
               >
                 重试
@@ -469,9 +463,9 @@ const Models: React.FC = () => {
           />
         ) : (
           <div className="bg-white p-4 rounded">
-            <Table 
-              columns={implementationColumns} 
-              dataSource={modelImplementations} 
+            <Table
+              columns={implementationColumns}
+              dataSource={modelImplementations}
               rowKey="id"
               pagination={false}
               loading={loading}
@@ -501,7 +495,7 @@ const Models: React.FC = () => {
                 ))}
               </Select>
             </Form.Item>
-            
+
             <Form.Item
               name="providerModelId"
               label="提供商模型ID"
@@ -510,7 +504,7 @@ const Models: React.FC = () => {
             >
               <Input placeholder="例如: gpt-4o, claude-3-opus-20240229" />
             </Form.Item>
-            
+
             <Form.Item
               name="version"
               label="版本"
@@ -518,7 +512,7 @@ const Models: React.FC = () => {
             >
               <Input placeholder="例如: 2023-05" />
             </Form.Item>
-            
+
             <Form.Item
               name="contextWindow"
               label="上下文窗口大小"
@@ -528,32 +522,34 @@ const Models: React.FC = () => {
             </Form.Item>
 
             <Form.Item label="定价信息">
-              <Input.Group compact>
+              <Space.Compact>
                 <Form.Item
                   name={['pricingInfo', 'currency']}
+                  initialValue={'USD'}
                   noStyle
                 >
-                  <Select placeholder="选择货币" defaultValue="USD" style={{ width: '30%' }}>
+                  <Select placeholder="选择货币" style={{ width: '30%' }}>
                     <Option value="USD">美元 (USD)</Option>
                     <Option value="CNY">人民币 (CNY)</Option>
                     <Option value="EUR">欧元 (EUR)</Option>
                   </Select>
                 </Form.Item>
-                
+
                 <Form.Item
                   name={['pricingInfo', 'billingMode']}
+                  initialValue={'token'}
                   noStyle
                 >
-                  <Select placeholder="选择计费模式" defaultValue="token" style={{ width: '30%' }}>
+                  <Select placeholder="选择计费模式" style={{ width: '30%' }}>
                     <Option value="token">按Token计费</Option>
                     <Option value="request">按请求计费</Option>
                     <Option value="minute">按时间计费</Option>
                     <Option value="hybrid">混合计费</Option>
                   </Select>
                 </Form.Item>
-              </Input.Group>
+              </Space.Compact>
             </Form.Item>
-            
+
             <Form.Item
               name={['pricingInfo', 'inputPrice']}
               label="输入价格"
@@ -561,7 +557,7 @@ const Models: React.FC = () => {
             >
               <Input type="number" step="0.001" placeholder="例如: 0.01" />
             </Form.Item>
-            
+
             <Form.Item
               name={['pricingInfo', 'outputPrice']}
               label="输出价格"
@@ -569,20 +565,21 @@ const Models: React.FC = () => {
             >
               <Input type="number" step="0.001" placeholder="例如: 0.03" />
             </Form.Item>
-            
+
             <Form.Item
               name={['pricingInfo', 'notes']}
               label="备注"
             >
               <Input.TextArea placeholder="添加定价相关的备注" />
             </Form.Item>
-            
+
             <Form.Item
               name="isAvailable"
+              initialValue={true}
               label="状态"
               valuePropName="checked"
             >
-              <Select defaultValue={true}>
+              <Select>
                 <Option value={true}>可用</Option>
                 <Option value={false}>不可用</Option>
               </Select>
@@ -619,9 +616,9 @@ const Models: React.FC = () => {
       <>
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold" data-testid="page-title">模型管理</h1>
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
             onClick={showAddModal}
           >
             添加模型
@@ -629,9 +626,9 @@ const Models: React.FC = () => {
         </div>
 
         <div className="bg-white p-4 rounded">
-          <Table 
-            columns={columns} 
-            dataSource={models} 
+          <Table
+            columns={columns}
+            dataSource={models}
             rowKey="id"
             pagination={false}
             loading={loading}
@@ -660,24 +657,24 @@ const Models: React.FC = () => {
           >
             <Input placeholder="例如: GPT-4o" />
           </Form.Item>
-          
+
           <Form.Item
             name="description"
             label="描述"
             rules={[{ max: 200, message: '描述不能超过200个字符' }]}
           >
-            <Input.TextArea 
-              placeholder="添加模型描述" 
+            <Input.TextArea
+              placeholder="添加模型描述"
               autoSize={{ minRows: 2, maxRows: 6 }}
             />
           </Form.Item>
-          
+
           <Form.Item
             name="capabilities"
             label="能力"
             rules={[{ required: true, message: '请选择模型能力' }]}
           >
-            <Select 
+            <Select
               mode="multiple"
               placeholder="选择模型能力"
               options={[
@@ -689,7 +686,7 @@ const Models: React.FC = () => {
               ]}
             />
           </Form.Item>
-          
+
           <Form.Item
             name="family"
             label="模型系列"
