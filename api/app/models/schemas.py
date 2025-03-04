@@ -82,7 +82,8 @@ class ModelProviderDetailedRead(ModelProviderRead):
 
 # Model Implementation schemas
 class ModelImplementationBase(BaseModel):
-    model_id: str = Field(..., description="Internal model identifier")
+    provider_id: UUID = Field(..., description="Provider ID that implements this model")
+    model_id: UUID = Field(..., description="Internal model identifier")
     provider_model_id: str = Field(..., description="Model ID as known by the provider")
     version: Optional[str] = None
     context_window: Optional[int] = None
