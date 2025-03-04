@@ -203,3 +203,48 @@ sequenceDiagram
 - `editingProviderId`: 正在编辑的提供商ID(为`null`时表示新增)
 - `currentProvider`: 当前正在管理密钥的提供商
 - `editingKeyId`: 正在编辑的密钥ID(为`null`时表示新增)
+
+## 主要组件结构
+
+```
+ModelProviders/
+  ├── index.tsx                  # 模型提供商页面主入口
+  ├── ModelProviders.test.tsx    # 组件测试文件
+  ├── Readme.md                  # 组件文档
+  │
+  ├── components/
+  │   ├── ProviderList.tsx       # 提供商列表组件
+  │   ├── ProviderForm.tsx       # 提供商添加/编辑表单
+  │   ├── ProviderDetail.tsx     # 提供商详情展示
+  │   ├── ApiKeyList.tsx         # API密钥列表组件
+  │   └── ApiKeyForm.tsx         # API密钥添加/编辑表单
+  │
+  ├── hooks/
+  │   ├── useProviders.tsx       # 提供商数据管理钩子
+  │   └── useApiKeys.tsx         # API密钥管理钩子
+  │
+  └── types/
+      └── index.ts               # 类型定义文件
+```
+
+基本组件结构说明:
+
+1. **index.tsx**: 主页面组件，负责整体布局与状态管理，协调子组件之间的交互。
+
+2. **组件层 (components/)**: 
+   - **ProviderList**: 展示所有模型提供商，支持搜索、排序，与选择操作
+   - **ProviderForm**: 用于创建和编辑提供商信息的表单组件，包含验证逻辑
+   - **ProviderDetail**: 展示提供商详细信息，包括相关API密钥列表
+   - **ApiKeyList**: 展示指定提供商的API密钥列表
+   - **ApiKeyForm**: 用于添加和编辑API密钥的表单组件
+
+3. **Hooks层 (hooks/)**: 
+   - **useProviders**: 封装与提供商相关的状态管理和API调用
+   - **useApiKeys**: 封装与API密钥相关的状态管理和API调用
+
+4. **服务层 (services/)**: 
+   - **providerService**: 处理与后端提供商API的通信
+   - **apiKeyService**: 处理与后端API密钥相关的API调用
+
+5. **类型定义 (types/)**: 
+   - 定义前端使用的所有类型，包括提供商、API密钥等TS接口
