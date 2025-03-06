@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多模型聊天设计 UI</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .popup {
+            display: none;
+            position: absolute;
+            bottom: 60px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            width: 300px;
+        }
+
+        .popup.show {
+            display: block;
+        }
+
+        /* Smooth delete button transition */
+        .delete-btn {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s;
+            width: 24px;
+            /* Fixed width to prevent layout shifts */
+        }
+
+        .group:hover .delete-btn {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Shredding animation for model answer deletion */
+        @keyframes shred-animation {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+                clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+            }
+            15% {
+                clip-path: polygon(0% 0%, 95% 5%, 100% 100%, 5% 95%);
+            }
+            30% {
+                clip-path: polygon(5% 15%, 85% 5%, 95% 90%, 15% 85%);
+            }
+            45% {
+                clip-path: polygon(10% 10%, 80% 15%, 90% 80%, 20% 70%);
+            }
+            60% {
+                clip-path: polygon(15% 25%, 75% 20%, 85% 65%, 25% 50%);
+                transform: translateY(5px) rotate(2deg);
+            }
+            75% {
+                clip-path: polygon(20% 35%, 70% 30%, 80% 50%, 30% 40%);
+                transform: translateY(10px) rotate(-2deg);
+            }
+            90% {
+                clip-path: polygon(25% 40%, 65% 35%, 75% 40%, 35% 35%);
+                transform: translateY(15px) rotate(2deg);
+            }
+            100% {
+                transform: translateY(20px) rotate(0deg);
+                opacity: 0;
+                clip-path: polygon(30% 40%, 60% 35%, 70% 35%, 40% 30%);
+            }
+        }
+
+        .shredding {
+            animation: shred-animation 0.8s ease-in forwards;
+            pointer-events: none;
+            /* Prevent interactions during animation */
+        }
+
+        /* Active tab indicator */
+        .tab-active {
+            @apply text-blue-600 border-b-2 border-blue-600;
+        }
+
+        /* Hidden tab content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 h-screen">
+    <div class="flex h-screen">
+        <!-- Sidebar: Conversation List -->
+        <aside class="w-1/4 border-r border-gray-300 p-4 overflow-y-auto">
+            <h2 class="text-lg font-semibold mb-4">会话列表</h2>
+            <ul>
+                <li
+                    class="group p-2 bg-white rounded mb-2 shadow-sm hover:bg-gray-100 cursor-pointer flex justify-between items-center transition-all duration-200">
+                    <span>会话 1</span>
+                    <button class="delete-btn text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-gray-200">
+                        <i class="fas fa-trash text-sm"></i>
+                    </button>
+                </li>
+                <li
+                    class="group p-2 bg-white rounded mb-2 shadow-sm hover:bg-gray-100 cursor-pointer flex justify-between items-center transition-all duration-200">
+                    <span>会话 2</span>
+                    <button class="delete-btn text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-gray-200">
+                        <i class="fas fa-trash text-sm"></i>
+                    </button>
+                </li>
+                <li
+                    class="group p-2 bg-white rounded mb-2 shadow-sm hover:bg-gray-100 cursor-pointer flex justify-between items-center transition-all duration-200">
+                    <span>会话 3</span>
+                    <button class="delete-btn text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-gray-200">
+                        <i class="fas fa-trash text-sm"></i>
+                    </button>
+                </li>
+                <!-- ...more conversations... -->
+            </ul>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="w-3/4 flex flex-col">
+            <!-- Chat Messages Area -->
+            <section class="flex-1 p-4 overflow-y-auto space-y-4">
+                <!-- User Message Card -->
+                <div class="flex flex-col">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <img class="w-10 h-10 rounded-full" src="https://via.placeholder.com/40" alt="用户头像">
+                        </div>
+                        <div class="ml-3 bg-white p-3 rounded shadow-sm w-full">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold">用户</span>
+                                <!-- Token count display below user avatar -->
+
+                                <div class="flex items-center text-sm text-gray-500 space-x-2">
+                                    <span class="bg-gray-100 px-2 py-1 rounded">
+                                        <i class="fas fa-calculator text-xs mr-1"></i>
+                                        <span>43 tokens</span>
+                                    </span>
+                                    <span>12:35 PM</span>
+                                </div>
+                            </div>
+                            <p>我想了解大型语言模型的工作原理...</p>
+                            <!-- Edit Button with Font Awesome -->
+                            <div class="mt-2 flex space-x-2">
+                                <button class="flex items-center text-blue-500 space-x-1">
+                                    <i class="fas fa-pencil-alt"></i>
+                                    <span>编辑</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Pagination Controls below User Message - NOW RIGHT-ALIGNED -->
+                    <div class="flex items-center justify-end mt-2 space-x-2">
+                        <!-- Left arrow -->
+                        <button class="p-2 rounded hover:bg-gray-200 focus:outline-none">
+                            <i class="fas fa-chevron-left text-blue-600"></i>
+                        </button>
+                        <span class="text-sm text-gray-600">1/6</span>
+                        <!-- Right arrow -->
+                        <button class="p-2 rounded hover:bg-gray-200 focus:outline-none">
+                            <i class="fas fa-chevron-right text-blue-600"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Multi-Model Response Tab Container -->
+                <div class="flex flex-col">
+                    <div class="bg-white rounded shadow-sm model-answer">
+                        <!-- Tab Headers -->
+                        <div class="border-b border-gray-200 flex tab-headers">
+                            <button class="flex items-center px-4 py-2 text-blue-600 border-b-2 border-blue-600 focus:outline-none tab-btn tab-active" data-tab="tab1">
+                                <i class="fas fa-robot mr-1"></i>
+                                <span>模型A</span>
+                            </button>
+                            <button class="flex items-center px-4 py-2 text-gray-500 hover:text-blue-600 hover:border-blue-600 border-b-2 border-transparent focus:outline-none tab-btn" data-tab="tab2">
+                                <i class="fas fa-clock mr-1"></i>
+                                <span>模型B</span>
+                            </button>
+                            <button class="flex items-center px-4 py-2 text-gray-500 hover:text-blue-600 hover:border-blue-600 border-b-2 border-transparent focus:outline-none tab-btn" data-tab="tab3">
+                                <i class="fas fa-check mr-1"></i>
+                                <span>模型C</span>
+                            </button>
+                        </div>
+                        <!-- Tab Contents -->
+                        <div class="tab-contents">
+                            <!-- Tab 1 Content -->
+                            <div class="p-4 tab-content active" id="tab1">
+                                <div class="model-content">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="font-bold">模型A回答</span>
+                                        <div class="flex items-center text-sm text-gray-500 space-x-2">
+                                            <!-- Token count and response time info -->
+                                            <span class="bg-gray-100 px-2 py-1 rounded">
+                                                <i class="fas fa-calculator text-xs mr-1"></i>
+                                                <span>152 tokens</span>
+                                            </span>
+                                            <span class="bg-gray-100 px-2 py-1 rounded">
+                                                <i class="fas fa-clock text-xs mr-1"></i>
+                                                <span>2.3s</span>
+                                            </span>
+                                            <span>12:35 PM</span>
+                                        </div>
+                                    </div>
+                                    <p>模型A生成的回答内容...</p>
+                                    <!-- Action Buttons with Font Awesome -->
+                                    <div class="mt-2 flex space-x-2">
+                                        <button class="flex items-center text-blue-500 space-x-1 delete-answer-btn">
+                                            <i class="fas fa-trash"></i>
+                                            <span>删除</span>
+                                        </button>
+                                        <button class="flex items-center text-blue-500 space-x-1">
+                                            <i class="fas fa-copy"></i>
+                                            <span>复制</span>
+                                        </button>
+                                        <button class="flex items-center text-blue-500 space-x-1">
+                                            <i class="fas fa-check"></i>
+                                            <span>选为上下文</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Tab 2 Content -->
+                            <div class="p-4 tab-content" id="tab2">
+                                <div class="model-content">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="font-bold">模型B回答</span>
+                                        <div class="flex items-center text-sm text-gray-500 space-x-2">
+                                            <span class="bg-gray-100 px-2 py-1 rounded">
+                                                <i class="fas fa-calculator text-xs mr-1"></i>
+                                                <span>165 tokens</span>
+                                            </span>
+                                            <span class="bg-gray-100 px-2 py-1 rounded">
+                                                <i class="fas fa-clock text-xs mr-1"></i>
+                                                <span>1.8s</span>
+                                            </span>
+                                            <span>12:35 PM</span>
+                                        </div>
+                                    </div>
+                                    <p>模型B生成的回答内容，可能与模型A有所不同...</p>
+                                    <!-- Action Buttons -->
+                                    <div class="mt-2 flex space-x-2">
+                                        <button class="flex items-center text-blue-500 space-x-1 delete-answer-btn">
+                                            <i class="fas fa-trash"></i>
+                                            <span>删除</span>
+                                        </button>
+                                        <button class="flex items-center text-blue-500 space-x-1">
+                                            <i class="fas fa-copy"></i>
+                                            <span>复制</span>
+                                        </button>
+                                        <button class="flex items-center text-blue-500 space-x-1">
+                                            <i class="fas fa-check"></i>
+                                            <span>选为上下文</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Tab 3 Content -->
+                            <div class="p-4 tab-content" id="tab3">
+                                <div class="model-content">
+                                    <!-- Similar content for model C -->
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="font-bold">模型C回答</span>
+                                        <div class="flex items-center text-sm text-gray-500 space-x-2">
+                                            <span class="bg-gray-100 px-2 py-1 rounded">
+                                                <i class="fas fa-calculator text-xs mr-1"></i>
+                                                <span>143 tokens</span>
+                                            </span>
+                                            <span class="bg-gray-100 px-2 py-1 rounded">
+                                                <i class="fas fa-clock text-xs mr-1"></i>
+                                                <span>2.1s</span>
+                                            </span>
+                                            <span>12:35 PM</span>
+                                        </div>
+                                    </div>
+                                    <p>这是模型C的回答内容...</p>
+                                    <!-- Action Buttons -->
+                                    <div class="mt-2 flex space-x-2">
+                                        <button class="flex items-center text-blue-500 space-x-1 delete-answer-btn">
+                                            <i class="fas fa-trash"></i>
+                                            <span>删除</span>
+                                        </button>
+                                        <button class="flex items-center text-blue-500 space-x-1">
+                                            <i class="fas fa-copy"></i>
+                                            <span>复制</span>
+                                        </button>
+                                        <button class="flex items-center text-blue-500 space-x-1">
+                                            <i class="fas fa-check"></i>
+                                            <span>选为上下文</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Pagination Controls below Multi-Model Tab Container - ALREADY LEFT-ALIGNED -->
+                    <div class="flex items-center justify-start mt-2 space-x-2">
+                        <!-- Left arrow -->
+                        <button class="p-2 rounded hover:bg-gray-200 focus:outline-none">
+                            <i class="fas fa-chevron-left text-blue-600"></i>
+                        </button>
+                        <span class="text-sm text-gray-600">1/6</span>
+                        <!-- Right arrow -->
+                        <button class="p-2 rounded hover:bg-gray-200 focus:outline-none">
+                            <i class="fas fa-chevron-right text-blue-600"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Message Input & Controls (with model selector and settings) -->
+            <footer class="border-t border-gray-300 p-4 bg-white relative">
+                <div class="flex items-center space-x-4">
+                    <!-- Model Selector Button -->
+                    <div class="relative">
+                        <!-- Settings Button -->
+                        <button id="settingsBtn" class="p-2 rounded hover:bg-gray-200 focus:outline-none text-blue-600">
+                            <i class="fas fa-cog text-xl"></i>
+                        </button>
+
+                        <!-- Settings Popup -->
+                        <div id="settingsPopup" class="popup left-0">
+                            <div class="p-4">
+                                <h3 class="font-bold mb-3">参数设置</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Temperature</label>
+                                        <input type="range" min="0" max="1" step="0.1" value="0.7" class="w-full">
+                                        <div class="flex justify-between text-xs text-gray-500">
+                                            <span>0</span>
+                                            <span>0.7</span>
+                                            <span>1</span>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Top-p</label>
+                                        <input type="range" min="0" max="1" step="0.1" value="0.9" class="w-full">
+                                        <div class="flex justify-between text-xs text-gray-500">
+                                            <span>0</span>
+                                            <span>0.9</span>
+                                            <span>1</span>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Max Tokens</label>
+                                        <input type="number" value="2048" class="w-full border rounded px-2 py-1">
+                                    </div>
+
+                                    <div class="mt-4 flex justify-end">
+                                        <button class="bg-blue-600 text-white px-4 py-1 rounded">应用</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="modelSelectorBtn"
+                            class="p-2 rounded hover:bg-gray-200 focus:outline-none text-blue-600">
+                            <i class="fas fa-robot text-xl"></i>
+                        </button>
+
+                        <!-- Model Selection Popup -->
+                        <div id="modelPopup" class="popup left-0">
+                            <div class="p-4">
+                                <h3 class="font-bold mb-3">选择模型</h3>
+                                <div class="space-y-2">
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="modelA" class="mr-2">
+                                        <label for="modelA">模型A</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="modelB" class="mr-2">
+                                        <label for="modelB">模型B</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="modelC" class="mr-2">
+                                        <label for="modelC">模型C</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="modelD" class="mr-2">
+                                        <label for="modelD">模型D</label>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex justify-end">
+                                    <button class="bg-blue-600 text-white px-4 py-1 rounded">确定</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="text" placeholder="输入消息..."
+                        class="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" />
+
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded flex items-center">
+                        <span>发送</span>
+                        <i class="fas fa-paper-plane ml-2"></i>
+                    </button>
+
+
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Simple JavaScript to toggle popups -->
+    <script>
+        document.getElementById('modelSelectorBtn').addEventListener('click', function () {
+            document.getElementById('modelPopup').classList.toggle('show');
+            document.getElementById('settingsPopup').classList.remove('show');
+        });
+
+        document.getElementById('settingsBtn').addEventListener('click', function () {
+            document.getElementById('settingsPopup').classList.toggle('show');
+            document.getElementById('modelPopup').classList.remove('show');
+        });
+
+        // Close popups when clicking elsewhere
+        document.addEventListener('click', function (event) {
+            if (!event.target.closest('#modelSelectorBtn') &&
+                !event.target.closest('#modelPopup') &&
+                !event.target.closest('#settingsBtn') &&
+                !event.target.closest('#settingsPopup')) {
+                document.getElementById('modelPopup').classList.remove('show');
+                document.getElementById('settingsPopup').classList.remove('show');
+            }
+        });
+
+        // Improved tab switching functionality - FIXED TEXT COLOR ISSUE
+        document.addEventListener('DOMContentLoaded', function() {
+            // Use event delegation for tab switching to handle dynamically added tabs
+            document.addEventListener('click', function(event) {
+                const clickedTab = event.target.closest('.tab-btn');
+                if (clickedTab) {
+                    // Find the parent tab container
+                    const tabContainer = clickedTab.closest('.model-answer');
+                    
+                    // Only affect tabs within this container
+                    const containerTabs = tabContainer.querySelectorAll('.tab-btn');
+                    const tabContents = tabContainer.querySelectorAll('.tab-content');
+                    
+                    // Remove active classes from all tabs in this container
+                    containerTabs.forEach(tab => {
+                        // Remove active classes
+                        tab.classList.remove('tab-active', 'text-blue-600', 'border-blue-600');
+                        
+                        // Restore inactive classes
+                        tab.classList.add('text-gray-500', 'border-transparent');
+                    });
+                    
+                    // Add active classes to clicked tab
+                    clickedTab.classList.add('tab-active', 'text-blue-600', 'border-blue-600');
+                    
+                    // Remove inactive classes
+                    clickedTab.classList.remove('text-gray-500', 'border-transparent');
+                    
+                    // Get the tab id to activate
+                    const tabId = clickedTab.getAttribute('data-tab');
+                    
+                    // Hide all tab contents in this container
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    
+                    // Show selected tab content
+                    tabContainer.querySelector(`#${tabId}`).classList.add('active');
+                }
+            });
+
+            // Add shredding effect for model answer deletion - UPDATED for tab-specific deletion
+            const deleteButtons = document.querySelectorAll('.delete-answer-btn');
+            
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Find the parent tab content
+                    const tabContent = this.closest('.tab-content');
+                    const modelContent = this.closest('.model-content');
+                    const modelAnswer = this.closest('.model-answer');
+                    const tabId = tabContent.id;
+                    const tabButton = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+                    const tabHeaders = modelAnswer.querySelector('.tab-headers');
+                    
+                    // Find next tab to activate BEFORE current tab is removed
+                    // Try to get next sibling first, if not available, get previous sibling, if not available get first tab
+                    const nextTabButton = tabButton.nextElementSibling || 
+                                          tabButton.previousElementSibling || 
+                                          tabHeaders.querySelector('.tab-btn:not([data-tab="' + tabId + '"])');
+                    
+                    // Store the ID of the next tab to activate
+                    const nextTabId = nextTabButton ? nextTabButton.getAttribute('data-tab') : null;
+                    
+                    // Apply shredding animation to just this content
+                    modelContent.classList.add('shredding');
+                    
+                    setTimeout(() => {
+                        // Count remaining tabs
+                        const remainingTabs = tabHeaders.querySelectorAll('.tab-btn').length;
+                        
+                        if (remainingTabs <= 1) {
+                            // This is the last tab, remove the entire model answer
+                            modelAnswer.style.height = '0';
+                            modelAnswer.style.margin = '0';
+                            modelAnswer.style.padding = '0';
+                            modelAnswer.style.overflow = 'hidden';
+                            modelAnswer.style.transition = 'all 0.3s ease';
+                            
+                            setTimeout(() => {
+                                modelAnswer.remove();
+                            }, 300);
+                        } else {
+                            // Remove the tab button first
+                            tabButton.remove();
+                            
+                            // Then remove the tab content
+                            tabContent.remove();
+                            
+                            // Activate the next tab if one was found
+                            if (nextTabId) {
+                                const newActiveTab = document.querySelector(`.tab-btn[data-tab="${nextTabId}"]`);
+                                if (newActiveTab) {
+                                    // Remove active classes from all tabs
+                                    document.querySelectorAll('.tab-btn').forEach(btn => {
+                                        btn.classList.remove('tab-active', 'text-blue-600', 'border-blue-600');
+                                        btn.classList.add('text-gray-500', 'border-transparent');
+                                    });
+                                    
+                                    // Add active classes to new tab
+                                    newActiveTab.classList.add('tab-active', 'text-blue-600', 'border-blue-600');
+                                    newActiveTab.classList.remove('text-gray-500', 'border-transparent');
+                                    
+                                    // Hide all tab contents
+                                    document.querySelectorAll('.tab-content').forEach(content => {
+                                        content.classList.remove('active');
+                                    });
+                                    
+                                    // Show selected tab content
+                                    document.getElementById(nextTabId).classList.add('active');
+                                }
+                            }
+                        }
+                    }, 800); // Match the animation duration
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
