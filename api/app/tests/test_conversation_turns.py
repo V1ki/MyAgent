@@ -24,7 +24,8 @@ def test_create_conversation_turn(client, conversation_id):
             "model_parameters": {
                 "temperature": 0.7,
                 "top_p": 0.9
-            }
+            },
+            "conversation_id": conversation_id  # Added conversation_id
         }
     )
     assert response.status_code == status.HTTP_201_CREATED
@@ -42,7 +43,8 @@ def test_create_turn_minimal(client, conversation_id):
     response = client.post(
         f"/conversations/{conversation_id}/turns",
         json={
-            "user_input": "Just a simple question"
+            "user_input": "Just a simple question",
+            "conversation_id": conversation_id  # Added conversation_id
         }
     )
     assert response.status_code == status.HTTP_201_CREATED
@@ -57,7 +59,8 @@ def test_create_turn_nonexistent_conversation(client):
     response = client.post(
         f"/conversations/{non_existent_id}/turns",
         json={
-            "user_input": "This should fail"
+            "user_input": "This should fail",
+            "conversation_id": non_existent_id  # Added conversation_id
         }
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -70,7 +73,10 @@ def test_get_conversation_turns(client, conversation_id):
     for user_input in turn_inputs:
         client.post(
             f"/conversations/{conversation_id}/turns",
-            json={"user_input": user_input}
+            json={
+                "user_input": user_input,
+                "conversation_id": conversation_id  # Added conversation_id
+            }
         )
     
     # Retrieve all turns
@@ -90,7 +96,10 @@ def test_get_conversation_turns_pagination(client, conversation_id):
     for i in range(5):
         client.post(
             f"/conversations/{conversation_id}/turns",
-            json={"user_input": f"Paginated question {i}"}
+            json={
+                "user_input": f"Paginated question {i}",
+                "conversation_id": conversation_id  # Added conversation_id
+            }
         )
     
     # Test limit parameter
@@ -115,7 +124,8 @@ def test_get_turn_by_id(client, conversation_id):
             "user_input": "Get by ID test",
             "model_parameters": {
                 "temperature": 0.8
-            }
+            },
+            "conversation_id": conversation_id  # Added conversation_id
         }
     )
     turn_id = response.json()["id"]
@@ -144,7 +154,8 @@ def test_update_turn(client, conversation_id):
             "user_input": "Update test",
             "model_parameters": {
                 "temperature": 0.7
-            }
+            },
+            "conversation_id": conversation_id  # Added conversation_id
         }
     )
     turn_id = response.json()["id"]
@@ -174,7 +185,8 @@ def test_update_turn_partial(client, conversation_id):
             "model_parameters": {
                 "temperature": 0.7,
                 "top_p": 0.9
-            }
+            },
+            "conversation_id": conversation_id  # Added conversation_id
         }
     )
     turn_id = response.json()["id"]
@@ -204,7 +216,10 @@ def test_delete_turn(client, conversation_id):
     # Create a test turn
     response = client.post(
         f"/conversations/{conversation_id}/turns",
-        json={"user_input": "Delete test"}
+        json={
+            "user_input": "Delete test",
+            "conversation_id": conversation_id  # Added conversation_id
+        }
     )
     turn_id = response.json()["id"]
     
@@ -231,7 +246,10 @@ def test_create_user_input_version(client, conversation_id):
     # Create a test turn
     response = client.post(
         f"/conversations/{conversation_id}/turns",
-        json={"user_input": "Original question"}
+        json={
+            "user_input": "Original question",
+            "conversation_id": conversation_id  # Added conversation_id
+        }
     )
     turn_id = response.json()["id"]
     
@@ -259,7 +277,10 @@ def test_get_input_versions(client, conversation_id):
     # Create a test turn
     response = client.post(
         f"/conversations/{conversation_id}/turns",
-        json={"user_input": "Initial question"}
+        json={
+            "user_input": "Initial question",
+            "conversation_id": conversation_id  # Added conversation_id
+        }
     )
     turn_id = response.json()["id"]
     
@@ -289,7 +310,10 @@ def test_set_current_version(client, conversation_id):
     # Create a test turn
     response = client.post(
         f"/conversations/{conversation_id}/turns",
-        json={"user_input": "Original question"}
+        json={
+            "user_input": "Original question",
+            "conversation_id": conversation_id  # Added conversation_id
+        }
     )
     turn_id = response.json()["id"]
     

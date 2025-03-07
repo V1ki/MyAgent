@@ -208,6 +208,7 @@ class ModelResponseBase(BaseModel):
     response_metadata: Optional[Dict[str, Any]] = Field(None, description="Response metadata")
 
 class ModelResponseCreate(ModelResponseBase):
+    turn_id: UUID = Field(..., description="ID of the conversation turn")
     model_implementation_id: UUID = Field(..., description="ID of the model implementation")
     input_version_id: Optional[UUID] = Field(None, description="ID of the input version this response is for")
 
@@ -236,7 +237,7 @@ class ConversationTurnBase(BaseModel):
     model_parameters: Optional[Dict[str, Any]] = Field(None, description="Parameters for this turn")
 
 class ConversationTurnCreate(ConversationTurnBase):
-    pass
+    conversation_id: UUID = Field(..., description="ID of the conversation this turn belongs to")
 
 class ConversationTurnUpdate(BaseModel):
     user_input: Optional[str] = None
