@@ -3,23 +3,23 @@
 ## 阶段一：基础功能
 
 ### 数据模型实现
-- [ ] 设计并实现会话（Conversation）数据结构
-- [ ] 设计并实现对话轮次（ConversationTurn）数据结构
-- [ ] 设计并实现模型响应（ModelResponse）数据结构
-- [ ] 实现模型提供商（ModelProvider）数据结构
-- [ ] 实现API密钥（ApiKey）管理功能
-- [ ] 实现模型（Model）与模型实现（ModelImplementation）数据结构
-- [ ] 设计参数（ModelParameters）数据结构
-- [ ] 创建数据库迁移脚本
-- [ ] 创建初始化数据脚本
+- [x] 设计并实现会话（Conversation）数据结构
+- [x] 设计并实现对话轮次（ConversationTurn）数据结构
+- [x] 设计并实现模型响应（ModelResponse）数据结构
+- [x] 实现模型提供商（ModelProvider）数据结构
+- [x] 实现API密钥（ApiKey）管理功能
+- [x] 实现模型（Model）与模型实现（ModelImplementation）数据结构
+- [x] 设计参数（ModelParameters）数据结构
+- [x] 创建数据库迁移脚本
+- [x] 创建初始化数据脚本
 
 ### 后端基础服务
-- [ ] 实现会话管理API
-  - [ ] 创建会话
-  - [ ] 获取会话列表
-  - [ ] 获取单个会话详情
-  - [ ] 更新会话信息
-  - [ ] 删除会话
+- [x] 实现会话管理API
+  - [x] 创建会话
+  - [x] 获取会话列表
+  - [x] 获取单个会话详情
+  - [x] 更新会话信息
+  - [x] 删除会话
 - [ ] 开发多模型协调器
   - [ ] 实现并行模型调用机制
   - [ ] 处理多模型响应聚合

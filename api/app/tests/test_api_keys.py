@@ -8,7 +8,7 @@ def provider_id(client):
     response = client.post(
         "/providers/",
         json={
-            "name": "KeyTestProvider",
+            "name": f"KeyTestProvider-{uuid.uuid4()}",
             "base_url": "https://api.key-test-provider.com"
         }
     )

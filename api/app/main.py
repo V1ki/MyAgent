@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-
-from app.routers import providers, api_keys, models
-from app.db.database import init_pgvector
+from app.routers import providers, api_keys, models, conversations
+from app.db.database import init_pgvector, SessionLocal
+from app.db.init_data import initialize_database
 
 app = FastAPI(
     title="Model Providers API",
@@ -25,16 +25,26 @@ async def lifespan(app: FastAPI):
     # Startup tasks
     try:
         init_pgvector()
+        
+        # Initialize database with default data
+        db = SessionLocal()
+        try:
+            initialize_database(db)
+        finally:
+            db.close()
     except Exception as e:
-        print(f"Warning: Failed to initialize pgvector extension: {e}")
+        print(f"Warning: Failed to initialize database: {e}")
+        
     yield
     # Shutdown tasks (if any) can be added here
-    
 
+app.router.lifespan_context = lifespan
+    
 # Include routers
 app.include_router(providers.router)
 app.include_router(api_keys.router)
 app.include_router(models.router)
+app.include_router(conversations.router)
 
 @app.get("/")
 async def root():

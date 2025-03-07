@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 
 from app.db.database import Base, get_db
+from app.db.init_data import initialize_database
 from app.main import app
 
 load_dotenv()
@@ -19,7 +20,10 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 @pytest.fixture(scope="function")
 def db():
     # Create the database tables
-    Base.metadata.drop_all(bind=engine)
+    with engine.connect() as conn:
+        conn.execute(text(f"DROP SCHEMA public CASCADE;"))
+        conn.execute(text(f"CREATE SCHEMA public;"))
+        conn.commit()
     Base.metadata.create_all(bind=engine)
     
     # Initialize pgvector extension
@@ -29,13 +33,19 @@ def db():
     
     # Create a new session for the test
     db = TestingSessionLocal()
+    initialize_database(db)
     try:
         yield db
     finally:
         db.close()
         
     # Drop the database tables after the test is complete
-    Base.metadata.drop_all(bind=engine)
+    # Base.metadata.drop_all(bind=engine)
+
+    with engine.connect() as conn:
+        conn.execute(text(f"DROP SCHEMA public CASCADE"))
+        conn.execute(text(f"CREATE SCHEMA public"))
+        conn.commit()
 
 @pytest.fixture(scope="function")
 def client(db):

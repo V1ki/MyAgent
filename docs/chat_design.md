@@ -53,7 +53,6 @@ classDiagram
         +DateTime updated_at
         +UUID user_id
         +String system_prompt
-        +Boolean is_multi_model
         +List[ConversationTurn] turns
     }
     
