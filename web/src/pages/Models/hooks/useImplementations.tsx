@@ -43,7 +43,7 @@ export const useImplementations = () => {
       return true;
     } catch (err) {
       console.error('Failed to create model implementation:', err);
-      message.error('Failed to add model implementation. Please try again later.');
+      message.error('保存失败，请稍后重试');
       return false;
     } finally {
       setLoading(false);
@@ -60,7 +60,7 @@ export const useImplementations = () => {
       return true;
     } catch (err) {
       console.error('Failed to update model implementation:', err);
-      message.error('Failed to update model implementation. Please try again later.');
+      message.error('保存失败，请稍后重试');
       return false;
     } finally {
       setLoading(false);
