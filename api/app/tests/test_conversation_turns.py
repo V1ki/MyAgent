@@ -231,9 +231,7 @@ def test_delete_turn(client, conversation_id):
     
     # The turn should still be retrievable, but marked as deleted
     response = client.get(f"/conversations/{conversation_id}/turns/{turn_id}")
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert data["is_deleted"] is True
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
 def test_delete_nonexistent_turn(client, conversation_id):
     """Test that deleting a non-existent turn returns a 404."""

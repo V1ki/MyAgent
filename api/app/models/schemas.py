@@ -214,7 +214,6 @@ class ModelResponseCreate(ModelResponseBase):
 
 class ModelResponseUpdate(BaseModel):
     is_selected: Optional[bool] = None
-    is_deleted: Optional[bool] = None
 
 class ModelResponseRead(ModelResponseBase):
     id: UUID
@@ -222,7 +221,6 @@ class ModelResponseRead(ModelResponseBase):
     model_implementation_id: UUID
     model_implementation: 'ModelImplementationRead'
     created_at: datetime
-    is_deleted: bool
     input_version_id: Optional[UUID] = None
     
     model_config = ConfigDict(from_attributes=True)
@@ -244,7 +242,6 @@ class ConversationTurnUpdate(BaseModel):
     user_input: Optional[str] = None
     model_parameters: Optional[Dict[str, Any]] = None
     active_response_id: Optional[UUID] = None
-    is_deleted: Optional[bool] = None
 
 class ConversationTurnRead(ConversationTurnBase):
     id: UUID
@@ -252,7 +249,6 @@ class ConversationTurnRead(ConversationTurnBase):
     created_at: datetime
     modified_at: datetime
     active_response_id: Optional[UUID] = None
-    is_deleted: bool
     
     model_config = ConfigDict(from_attributes=True)
 

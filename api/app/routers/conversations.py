@@ -229,13 +229,12 @@ def delete_conversation_turn(
             detail=f"Conversation with ID {conversation_id} not found"
         )
     
-    deleted_turn = ConversationTurnService.delete_conversation_turn(db, turn_id)
-    if deleted_turn is None or deleted_turn.conversation_id != conversation_id:
+    if not ConversationTurnService.delete_conversation_turn(db, turn_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Turn with ID {turn_id} not found in conversation {conversation_id}"
         )
-    return deleted_turn
+    return None
 
 # User input version endpoints
 @router.get("/{conversation_id}/turns/{turn_id}/versions", response_model=List[UserInputVersionRead])
@@ -379,11 +378,10 @@ def delete_model_response(
             detail=f"Turn with ID {turn_id} not found in conversation {conversation_id}"
         )
     
-    deleted_response = ModelResponseService.delete_model_response(db, response_id)
-    if deleted_response is None or deleted_response.turn_id != turn_id:
+    if not ModelResponseService.delete_model_response(db, response_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Response with ID {response_id} not found for turn {turn_id}"
         )
     
-    return deleted_response
+    return None

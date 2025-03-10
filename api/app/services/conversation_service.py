@@ -76,13 +76,11 @@ class ConversationService:
             return []
         messages = []
         for turn in conversation.turns:
-            if turn.is_deleted:
-                continue
             user_input = turn.user_input
             if user_input:
                 messages.append({"role": "user", "content": user_input})
             active_response = turn.active_response
-            if active_response and not active_response.is_deleted:
+            if active_response:
                 messages.append({"role": "assistant", "content": active_response.content})
         return messages
             
@@ -106,7 +104,6 @@ class ConversationTurnService:
             conversation_id=conversation_id,
             user_input=turn_data.user_input,
             model_parameters=turn_data.model_parameters,
-            is_deleted=False
         )
         db.add(db_turn)
         db.commit()
@@ -146,11 +143,13 @@ class ConversationTurnService:
         db_turn = ConversationTurnService.get_conversation_turn(db, turn_id)
         if db_turn is None:
             return None
-            
-        db_turn.is_deleted = True
+        
+        # delete all responses associated with this turn
+        for response in db_turn.responses:
+            db.delete(response)
+        db.delete(db_turn)
         db.commit()
-        db.refresh(db_turn)
-        return db_turn
+        return None
 
     @staticmethod
     def set_active_response(db: Session, turn_id: UUID, response_id: UUID) -> Optional[ConversationTurn]:
@@ -246,8 +245,7 @@ class ModelResponseService:
             model_implementation_id=response_data.model_implementation_id,
             content=response_data.content,
             is_selected=response_data.is_selected,
-            is_deleted=False,
-            response_metadata=response_data.response_metadata,
+            response_metadata=response_data.metadata,
             input_version_id=response_data.input_version_id
         )
         db.add(db_response)
@@ -292,7 +290,7 @@ class ModelResponseService:
         if response is None:
             return None
             
-        response.is_deleted = True
+        db.delete(response)
         
         # If this was the active response for the turn, clear that reference
         turn = db.query(ConversationTurn).filter(
@@ -303,7 +301,6 @@ class ModelResponseService:
             turn.active_response_id = None
         
         db.commit()
-        db.refresh(response)
         return response
 
 class ParameterPresetService:

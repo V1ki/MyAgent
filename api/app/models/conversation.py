@@ -35,7 +35,6 @@ class ConversationTurn(Base):
     user_input = Column(Text, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     modified_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
-    is_deleted = Column(Boolean, default=False)
     model_parameters = Column(JSONB, nullable=True)
     active_response_id = Column(UUID(as_uuid=True), ForeignKey("model_responses.id"), nullable=True)
     
@@ -83,7 +82,6 @@ class ModelResponse(Base):
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     is_selected = Column(Boolean, default=False)
-    is_deleted = Column(Boolean, default=False)
     response_metadata = Column(JSONB, nullable=True)  # Renamed from 'metadata'
     input_version_id = Column(UUID(as_uuid=True), ForeignKey("user_input_versions.id"), nullable=True)
     

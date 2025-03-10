@@ -137,7 +137,6 @@ async def test_chat_with_multiple_models(client, db, setup_test_data):
                     content=resp["content"],
                     metadata=resp["metadata"],
                     is_selected=False,
-                    is_deleted=False
                 )
                 saved_responses.append(model_response)
             
@@ -255,7 +254,6 @@ async def test_select_response_as_context(client, db, setup_test_data):
         content="Response from model 1",
         metadata={"model": "test-model-1"},
         is_selected=False,
-        is_deleted=False
     )
     db.add(response1)
     
@@ -265,7 +263,6 @@ async def test_select_response_as_context(client, db, setup_test_data):
         content="Response from model 2",
         metadata={"model": "test-model-2"},
         is_selected=False,
-        is_deleted=False
     )
     db.add(response2)
     db.commit()
