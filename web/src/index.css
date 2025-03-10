@@ -35,3 +35,15 @@ body {
   margin: 0;
   color: #fff;
 }
+
+/* 覆盖 Ant Design 按钮禁用状态颜色 */
+button.ant-btn.text-green-600[disabled] {
+  
+  color: rgb(22 ,163, 74) !important;
+  background-color: transparent !important;
+}
+
+/* 处理图标颜色 */
+button.ant-btn.text-green-600[disabled] .anticon {
+  color: rgb(22 ,163, 74) !important;
+}

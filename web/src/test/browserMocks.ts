@@ -1,3 +1,5 @@
+import { vi } from 'vitest'
+
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: vi.fn().mockImplementation(query => ({
@@ -11,3 +13,12 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   })),
 })
+
+// Object.defineProperty(window, 'getComputedStyle', {
+//   writable: true,
+//   value: vi.fn().mockImplementation(() => ({
+//     getPropertyValue: () => '',
+//     display: 'block',
+//     appearance: ['-webkit-appearance'],
+//   })),
+// })

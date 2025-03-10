@@ -6,6 +6,7 @@ import ModelProviders from '../pages/ModelProviders'
 import Models from '../pages/Models'
 import Chat from '../pages/Chat'
 import MainLayout from '../layouts/MainLayout'
+import { ConversationProvider } from '../pages/Chat/hooks'
 
 const rootRoute = createRootRoute({
   component: ()=>{
@@ -49,14 +50,34 @@ const settingsRoute = createRoute({
   component: Settings,
 })
 
-const chatRoute = createRoute({
+// Create parent chat route
+const chatLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/chat',
-  component: Chat,
+  component: () => (
+    <ConversationProvider>
+      <Chat />
+    </ConversationProvider>
+  )
 })
 
+const chatDetailRoute = createRoute({
+  getParentRoute: () => chatLayoutRoute,
+  path: '$chatId',
+  loader: async ({ params }) => {
+    console.log('params', params)
+    const { chatId } = params
+    return { chatId }
+  }
+})
+
+// Replace the single chatRoute with the chat route tree
+const chatRouteTree = chatLayoutRoute.addChildren([
+  chatDetailRoute
+])
+
 const layoutTree = layoutRoute.addChildren([indexRoute, userRoute, modelsRoute, modelProvidersRoute, settingsRoute])
-const routeTree = rootRoute.addChildren([layoutTree, chatRoute])
+const routeTree = rootRoute.addChildren([layoutTree, chatRouteTree])
 
 export const router = createRouter({ routeTree })
 

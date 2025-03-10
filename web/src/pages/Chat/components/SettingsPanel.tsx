@@ -1,16 +1,9 @@
-import React, { useState } from 'react';
-import { Drawer, Slider, InputNumber, Button, Space } from 'antd';
+import { Drawer, Slider, InputNumber, Button, Space,Select,  Modal, Form, Input } from 'antd';
+import { ParameterPreset , ModelParameters} from '../types';
+import React, { useState, useEffect } from 'react';
 import { SaveOutlined } from '@ant-design/icons';
-import ParameterPresetSelector from './ParameterPresetSelector';
-import { mockParameterPresets } from '../mockData';
+import { conversationService } from '../../../services/api';
 
-interface ModelParameters {
-  temperature: number;
-  topP: number;
-  maxTokens: number;
-  frequencyPenalty: number;
-  presencePenalty: number;
-}
 
 interface SettingsPanelProps {
   open: boolean;
@@ -20,6 +13,147 @@ interface SettingsPanelProps {
   onSaveAsPreset: (parameters: ModelParameters) => void;
 }
 
+interface ParameterPresetSelectorProps {
+  currentParameters: ModelParameters;
+  onSelectPreset: (preset: ParameterPreset) => void;
+  onSavePreset: (name: string, parameters: ModelParameters) => void;
+}
+
+const ParameterPresetSelector: React.FC<ParameterPresetSelectorProps> = ({
+  currentParameters,
+  onSelectPreset,
+  onSavePreset,
+}) => {
+  const [presets, setPresets] = useState<ParameterPreset[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [form] = Form.useForm();
+
+  // Load presets from the API
+  useEffect(() => {
+    const fetchPresets = async () => {
+      setLoading(true);
+      try {
+        const apiPresets = await conversationService.getParameterPresets();
+        // Convert API format to frontend format
+        const frontendPresets = apiPresets.map(preset => ({
+          id: preset.id,
+          name: preset.name,
+          description: preset.description,
+          parameters: preset.parameters
+        }));
+        setPresets(frontendPresets);
+      } catch (error) {
+        console.error('Failed to load parameter presets:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPresets();
+  }, []);
+
+  // Handle preset selection
+  const handlePresetSelect = (presetId: string) => {
+    const selected = presets.find(preset => preset.id === presetId);
+    if (selected) {
+      onSelectPreset(selected);
+    }
+  };
+
+  // Handle save preset modal
+  const showSaveModal = () => {
+    setModalVisible(true);
+  };
+
+  // Handle form submission
+  const handleSave = async (values: { name: string; description?: string }) => {
+    try {
+      setLoading(true);
+      
+      const newPreset = {
+        name: values.name,
+        description: values.description,
+        parameters: currentParameters
+      };
+      
+      // Save preset to backend
+      await conversationService.createParameterPreset({
+        name: values.name,
+        description: values.description,
+        parameters: currentParameters
+      });
+      
+      // Refresh presets list
+      const apiPresets = await conversationService.getParameterPresets();
+      const frontendPresets = apiPresets.map(preset => ({
+        id: preset.id,
+        name: preset.name,
+        description: preset.description,
+        parameters: preset.parameters
+      }));
+      setPresets(frontendPresets);
+      
+      // Call the onSavePreset callback
+      onSavePreset(values.name, currentParameters);
+      
+      setModalVisible(false);
+      form.resetFields();
+    } catch (error) {
+      console.error('Failed to save preset:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center space-x-2">
+        <Select
+          loading={loading}
+          style={{ width: '70%' }}
+          placeholder="选择参数预设"
+          onChange={handlePresetSelect}
+          options={presets.map(preset => ({ value: preset.id, label: preset.name }))}
+        />
+        <Button icon={<SaveOutlined />} onClick={showSaveModal}>
+          保存当前
+        </Button>
+      </div>
+
+      <Modal
+        title="保存参数预设"
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        footer={null}
+      >
+        <Form form={form} layout="vertical" onFinish={handleSave}>
+          <Form.Item
+            name="name"
+            label="预设名称"
+            rules={[{ required: true, message: '请输入预设名称' }]}
+          >
+            <Input placeholder="例如：创意写作" />
+          </Form.Item>
+
+          <Form.Item name="description" label="预设描述">
+            <Input.TextArea
+              placeholder="可选：描述这个预设的使用场景或特点"
+              rows={3}
+            />
+          </Form.Item>
+
+          <div className="flex justify-end space-x-2">
+            <Button onClick={() => setModalVisible(false)}>取消</Button>
+            <Button type="primary" htmlType="submit" loading={loading}>
+              保存
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+    </div>
+  );
+};
 const SettingsPanel: React.FC<SettingsPanelProps> = ({
   open,
   parameters,
@@ -43,14 +177,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   // 处理保存为预设
   const handleSavePreset = (name: string, params: ModelParameters) => {
     setSaving(true);
-    // TODO: 实际保存到后端
+    // Pass to parent which handles the API call
     onSaveAsPreset(params);
     setSaving(false);
   };
 
   // 处理选择预设
-  const handleSelectPreset = (preset: { parameters: ModelParameters }) => {
-    setCurrentParams(preset.parameters);
+  const handleSelectPreset = (preset: ParameterPreset) => {
+    // Convert the preset parameters to our ModelParameters format
+    const presetParams = preset.parameters as ModelParameters;
+    setCurrentParams({
+      temperature: presetParams.temperature || 0.7,
+      topP: presetParams.topP || 0.9,
+      maxTokens: presetParams.maxTokens || 2048,
+      frequencyPenalty: presetParams.frequencyPenalty || 0,
+      presencePenalty: presetParams.presencePenalty || 0,
+    });
   };
 
   return (
@@ -73,7 +215,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         {/* Parameter Preset Selector */}
         <div className="pb-4 border-b">
           <ParameterPresetSelector
-            presets={mockParameterPresets}
             currentParameters={currentParams}
             onSelectPreset={handleSelectPreset}
             onSavePreset={handleSavePreset}

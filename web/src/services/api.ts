@@ -1,132 +1,25 @@
+// Import all types from the dedicated types file
+import {
+  ApiKey,
+  ModelProvider,
+  Model,
+  ModelImplementation,
+  FrontendModel,
+  FrontendModelImplementation,
+  ConversationCreate,
+  ConversationRead,
+  ConversationDetailedRead,
+  ConversationTurnCreate,
+  ConversationTurnRead,
+  ConversationTurnDetailedRead,
+  ParameterPresetCreate,
+  ParameterPresetRead,
+  MultiModelChatRequest,
+  MultiModelChatResponse,
+} from '../types/api';
+
 // Define the base URL for API calls
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
-// Define TypeScript interfaces based on backend schemas
-// Provider interfaces
-export interface ApiKey {
-  id: string;
-  provider_id: string;
-  alias: string;
-  key_preview?: string;
-  key?: string; // Used only when creating/updating
-}
-
-export interface ModelProvider {
-  id: string;
-  name: string;
-  base_url: string;
-  description?: string;
-  api_keys?: ApiKey[];
-  api_keys_count?: number;
-}
-
-// Model interfaces
-export interface Model {
-  id: string;
-  name: string;
-  description?: string;
-  capabilities: string[];
-  family: string;
-}
-
-export interface ModelImplementation {
-  id: string;
-  provider_id: string;
-  model_id: string;
-  provider_model_id: string;
-  version: string;
-  context_window?: number;
-  pricing_info?: PricingInfo;
-  is_available: boolean;
-  custom_parameters?: Record<string, any>;
-}
-
-export interface PricingInfo {
-  currency: string;
-  billing_mode: "token" | "request" | "minute" | "hybrid";
-  input_price?: number;
-  output_price?: number;
-  request_price?: number;
-  minute_price?: number;
-  tiers?: PricingTier[];
-  special_features?: FeaturePricing[];
-  free_allowance?: Allowance;
-  minimum_charge?: number;
-  effective_date?: string;
-  notes?: string;
-}
-
-interface PricingTier {
-  tier_name: string;
-  volume_threshold: number;
-  input_price?: number;
-  output_price?: number;
-  request_price?: number;
-}
-
-interface FeaturePricing {
-  feature_name: string;
-  additional_price: number;
-  price_unit: string;
-}
-
-interface Allowance {
-  tokens?: number;
-  requests?: number;
-  valid_period?: string;
-}
-
-// Frontend adapted interfaces (convert snake_case to camelCase)
-export interface FrontendModel extends Omit<Model, 'id'> {
-  id: string;
-}
-
-export interface FrontendModelImplementation {
-  id: string;
-  providerId: string;
-  modelId: string;
-  providerModelId: string;
-  version: string;
-  contextWindow?: number;
-  pricingInfo?: FrontendPricingInfo;
-  isAvailable: boolean;
-  customParameters?: Record<string, any>;
-}
-
-export interface FrontendPricingInfo {
-  currency: string;
-  billingMode: "token" | "request" | "minute" | "hybrid";
-  inputPrice?: number;
-  outputPrice?: number;
-  requestPrice?: number;
-  minutePrice?: number;
-  tiers?: FrontendPricingTier[];
-  specialFeatures?: FrontendFeaturePricing[];
-  freeAllowance?: FrontendAllowance;
-  minimumCharge?: number;
-  effectiveDate?: string;
-  notes?: string;
-}
-
-interface FrontendPricingTier {
-  tierName: string;
-  volumeThreshold: number;
-  inputPrice?: number;
-  outputPrice?: number;
-  requestPrice?: number;
-}
-
-interface FrontendFeaturePricing {
-  featureName: string;
-  additionalPrice: number;
-  priceUnit: string;
-}
-
-interface FrontendAllowance {
-  tokens?: number;
-  requests?: number;
-  validPeriod?: string;
-}
 
 // Helper function for fetch requests
 const fetchAPI = async (endpoint: string, options: RequestInit = {}): Promise<any> => {
@@ -430,6 +323,124 @@ export const modelService = {
   deleteModelImplementation: async (id: string): Promise<void> => {
     await fetchAPI(`/models/implementations/${id}`, {
       method: 'DELETE',
+    });
+  },
+};
+
+// Conversation and Chat service
+export const conversationService = {
+  // Get all conversations
+  getConversations: async (skip = 0, limit = 100): Promise<ConversationRead[]> => {
+    return fetchAPI(`/conversations/?skip=${skip}&limit=${limit}`);
+  },
+
+  // Get a specific conversation with details
+  getConversation: async (id: string): Promise<ConversationDetailedRead> => {
+    return fetchAPI(`/conversations/${id}`);
+  },
+
+  // Create a new conversation
+  createConversation: async (conversation: ConversationCreate): Promise<ConversationRead> => {
+    return fetchAPI('/conversations/', {
+      method: 'POST',
+      body: JSON.stringify(conversation)
+    });
+  },
+
+  // Update a conversation
+  updateConversation: async (id: string, conversation: Partial<ConversationCreate>): Promise<ConversationRead> => {
+    return fetchAPI(`/conversations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(conversation)
+    });
+  },
+
+  // Delete a conversation
+  deleteConversation: async (id: string): Promise<void> => {
+    return fetchAPI(`/conversations/${id}`, {
+      method: 'DELETE'
+    });
+  },
+
+  // Get conversation turns
+  getConversationTurns: async (conversationId: string, skip = 0, limit = 100): Promise<ConversationTurnRead[]> => {
+    return fetchAPI(`/conversations/${conversationId}/turns?skip=${skip}&limit=${limit}`);
+  },
+
+  // Get a specific turn with details
+  getConversationTurn: async (conversationId: string, turnId: string): Promise<ConversationTurnDetailedRead> => {
+    return fetchAPI(`/conversations/${conversationId}/turns/${turnId}`);
+  },
+
+  // Create a new turn
+  createConversationTurn: async (conversationId: string, turn: ConversationTurnCreate): Promise<ConversationTurnRead> => {
+    return fetchAPI(`/conversations/${conversationId}/turns`, {
+      method: 'POST',
+      body: JSON.stringify(turn)
+    });
+  },
+
+  // Delete a turn (soft delete)
+  deleteConversationTurn: async (conversationId: string, turnId: string): Promise<ConversationTurnRead> => {
+    return fetchAPI(`/conversations/${conversationId}/turns/${turnId}`, {
+      method: 'DELETE'
+    });
+  },
+
+  // Get parameter presets
+  getParameterPresets: async (skip = 0, limit = 100): Promise<ParameterPresetRead[]> => {
+    return fetchAPI(`/conversations/parameter-presets?skip=${skip}&limit=${limit}`);
+  },
+
+  // Create a parameter preset
+  createParameterPreset: async (preset: ParameterPresetCreate): Promise<ParameterPresetRead> => {
+    return fetchAPI('/conversations/parameter-presets', {
+      method: 'POST',
+      body: JSON.stringify(preset)
+    });
+  },
+
+  // Delete a parameter preset
+  deleteParameterPreset: async (id: string): Promise<void> => {
+    return fetchAPI(`/conversations/parameter-presets/${id}`, {
+      method: 'DELETE'
+    });
+  },
+};
+
+// Multi-model chat service
+export const chatService = {
+  // Send a message to multiple models
+  sendMultiModelMessage: async (request: MultiModelChatRequest): Promise<MultiModelChatResponse> => {
+    return fetchAPI('/chat/multi', {
+      method: 'POST',
+      body: JSON.stringify(request)
+    });
+  },
+
+  // Stream a message to multiple models
+  streamMultiModelMessage: (
+    conversationId: string,
+    modelIds: string[],
+    message: string,
+    parameters?: Record<string, any>
+  ): EventSource => {
+    const params = new URLSearchParams({
+      conversation_id: conversationId,
+      models: modelIds.join(','),
+      message
+    });
+    if (parameters) {
+      params.append('parameters', JSON.stringify(parameters));
+    }
+    
+    return new EventSource(`${BASE_URL}/chat/multi/stream?${params.toString()}`);
+  },
+
+  // Select a response as context
+  selectResponseAsContext: async (turnId: string, responseId: string): Promise<{ status: string; selected_response_id: string }> => {
+    return fetchAPI(`/chat/turns/${turnId}/select-response/${responseId}`, {
+      method: 'PUT'
     });
   },
 };

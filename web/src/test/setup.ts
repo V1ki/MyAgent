@@ -3,13 +3,9 @@ import { afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import './browserMocks'
 
-Object.defineProperty(window, 'getComputedStyle', {
-  value: () => ({
-    getPropertyValue: () => '',
-    display: 'block',
-    appearance: ['-webkit-appearance'],
-  }),
-})
+const { getComputedStyle } = window;
+window.getComputedStyle = (elt) => getComputedStyle(elt);
+
 // 每个测试后自动清理
 afterEach(() => {
   cleanup()
