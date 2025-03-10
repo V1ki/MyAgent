@@ -220,6 +220,7 @@ class ModelResponseRead(ModelResponseBase):
     id: UUID
     turn_id: UUID
     model_implementation_id: UUID
+    model_implementation: 'ModelImplementationRead'
     created_at: datetime
     is_deleted: bool
     input_version_id: Optional[UUID] = None

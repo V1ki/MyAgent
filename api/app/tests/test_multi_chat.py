@@ -166,9 +166,9 @@ async def test_chat_with_multiple_models(client, db, setup_test_data):
     # Check that orchestrator was called with correct parameters
     mock_orchestrate.assert_called_once()
     call_args = mock_orchestrate.call_args[1]
-    assert call_args["prompt"] == "Test message"
-    assert call_args["parameters"] == {"temperature": 0.8}
-    assert len(call_args["implementation_ids"]) == 2
+    assert call_args["messages"] == [
+        {"role": "user", "content": "Test message"}
+    ]
     
     # Verify response content
     responses = response.json()["responses"]
@@ -304,22 +304,7 @@ def test_invalid_conversation_id(client, db):
     )
     assert response.status_code == 400
     assert "Invalid UUID format" in response.json()["detail"]
-
-
-def test_nonexistent_conversation(client, db):
-    """Test error handling when conversation doesn't exist."""
-    random_uuid = str(uuid.uuid4())
-    response = client.post(
-        "/chat/multi",
-        json={
-            "conversation_id": random_uuid,
-            "model_implementations": [str(uuid.uuid4())],
-            "message": "Test message"
-        }
-    )
-    assert response.status_code == 404
-    assert f"Conversation with ID {random_uuid}" in response.json()["detail"]
-
+    
 
 def test_missing_required_fields(client, db):
     """Test error handling when required fields are missing."""

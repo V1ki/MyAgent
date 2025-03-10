@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import List, Optional
+from openai.types.chat import ChatCompletionMessageParam
 import uuid
 
 from app.models.conversation import Conversation, ConversationTurn, UserInputVersion, ModelResponse, ParameterPreset
@@ -52,10 +53,39 @@ class ConversationService:
         db_conversation = ConversationService.get_conversation(db, conversation_id)
         if db_conversation is None:
             return False
-            
+        
+        # Soft delete all turns and responses
+        for turn in db_conversation.turns:
+            turn.active_response_id = None
+        db.flush()
+
+        for turn in db_conversation.turns:
+            for response in turn.responses:
+                db.delete(response)
+
+        for turn in db_conversation.turns:
+            db.delete(turn)
+
         db.delete(db_conversation)
         db.commit()
         return True
+    @staticmethod
+    def build_message(conversation: Conversation) -> List[ChatCompletionMessageParam]:
+        """Build a message for a conversation."""
+        if conversation is None:
+            return []
+        messages = []
+        for turn in conversation.turns:
+            if turn.is_deleted:
+                continue
+            user_input = turn.user_input
+            if user_input:
+                messages.append({"role": "user", "content": user_input})
+            active_response = turn.active_response
+            if active_response and not active_response.is_deleted:
+                messages.append({"role": "assistant", "content": active_response.content})
+        return messages
+            
 
 class ConversationTurnService:
     @staticmethod

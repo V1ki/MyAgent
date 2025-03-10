@@ -11,12 +11,35 @@ from app.models.schemas import ConversationTurnCreate
 from app.models.conversation import ConversationTurn, ModelResponse
 from app.services.orchestrator_service import ModelOrchestrator
 from app.services.conversation_service import ConversationService
+from app.services.model_service import ModelImplementationService
+from app.services.provider_service import ProviderService
 
 router = APIRouter(
     prefix="/chat",
     tags=["multi-model-chat"],
     responses={404: {"description": "Not found"}},
 )
+
+# Helper function to get model and provider names
+def get_model_provider_info(db: Session, implementation_id: UUID) -> Dict[str, str]:
+    """Get model and provider names for an implementation ID"""
+    try:
+        implementation = ModelImplementationService.get_implementation(db, implementation_id)
+        if implementation:
+            provider = ProviderService.get_provider(db, implementation.provider_id)
+            provider_name = provider.name if provider else "Unknown Provider"
+            
+            return {
+                "model_name": f"{implementation.provider_model_id}" if implementation else implementation.provider_model_id,
+                "provider_name": provider_name
+            }
+    except Exception as e:
+        print(f"Error getting model info: {e}")
+    
+    return {
+        "model_name": "Unknown Model",
+        "provider_name": "Unknown Provider"
+    }
 
 @router.post("/multi")
 async def chat_with_multiple_models(
@@ -54,7 +77,8 @@ async def chat_with_multiple_models(
     # Check if conversation exists
     conversation = ConversationService.get_conversation(db, conversation_id)
     if not conversation:
-        raise HTTPException(status_code=404, detail=f"Conversation with ID {conversation_id} not found")
+        # Create a new conversation if it doesn't exist
+        conversation = ConversationService.create_conversation(db, conversation_id)
     
     # Create a new conversation turn
     new_turn = ConversationTurnCreate(
@@ -70,21 +94,28 @@ async def chat_with_multiple_models(
     db.add(db_turn)
     db.commit()
     db.refresh(db_turn)
-    
+
+    # build messages
+    messages = ConversationService.build_message(conversation)
     # Call multiple models in parallel
     responses = await ModelOrchestrator.orchestrate_model_calls(
         db=db,
         implementation_ids=model_implementation_ids,
-        prompt=message,
+        messages=messages,
         parameters=parameters
     )
     
     # Save responses to database
     saved_responses = ModelOrchestrator.save_model_responses(
         db=db,
-        turn_id=db_turn.id,
+        turn=db_turn,
         responses=responses
     )
+    
+    # Cache model and provider info for each implementation ID
+    model_info_cache = {}
+    for impl_id in model_implementation_ids:
+        model_info_cache[str(impl_id)] = get_model_provider_info(db, impl_id)
     
     # Format and return the responses
     result = {
@@ -92,14 +123,9 @@ async def chat_with_multiple_models(
         "responses": [
             {
                 "id": str(resp.id),
-                "model_name": next(
-                    (r["model_name"] for r in responses if r["implementation_id"] == str(resp.model_implementation_id)), 
-                    "Unknown"
-                ),
-                "provider_name": next(
-                    (r["provider_name"] for r in responses if r["implementation_id"] == str(resp.model_implementation_id)),
-                    "Unknown"
-                ),
+                "model_implementation_id": str(resp.model_implementation_id) if resp.model_implementation_id else None,
+                "model_name": model_info_cache.get(str(resp.model_implementation_id), {}).get("model_name", "Unknown Model"),
+                "provider_name": model_info_cache.get(str(resp.model_implementation_id), {}).get("provider_name", "Unknown Provider"),
                 "content": resp.content,
                 "error": next(
                     (r["error"] for r in responses if r["implementation_id"] == str(resp.model_implementation_id)),
@@ -154,6 +180,11 @@ async def stream_chat_with_multiple_models(
     db.commit()
     db.refresh(db_turn)
     
+    # Cache model and provider info for each implementation ID
+    model_info_cache = {}
+    for impl_id in model_ids:
+        model_info_cache[str(impl_id)] = get_model_provider_info(db, impl_id)
+    
     # This is a placeholder for the actual streaming implementation
     # In a real implementation, you would use SSE to stream partial responses from models
     async def stream_generator():
@@ -171,11 +202,16 @@ async def stream_chat_with_multiple_models(
         
         # Simulate streaming by sending each response separately
         for idx, response in enumerate(responses):
+            model_info = model_info_cache.get(response['implementation_id'], {})
+            model_name = model_info.get("model_name", response['model_name'])
+            provider_name = model_info.get("provider_name", response['provider_name'])
+            
             yield f"event: model-response\n"
             yield f"data: {json.dumps({
                 'model_id': response['implementation_id'],
-                'model_name': response['model_name'],
-                'provider_name': response['provider_name'],
+                'model_implementation_id': response['implementation_id'],
+                'model_name': model_name,
+                'provider_name': provider_name,
                 'content': response['content'],
                 'error': response['error']
             })}\n\n"
@@ -184,11 +220,24 @@ async def stream_chat_with_multiple_models(
             await asyncio.sleep(0.1)
         
         # Save all responses to the database after streaming
-        ModelOrchestrator.save_model_responses(
+        saved_responses = ModelOrchestrator.save_model_responses(
             db=db,
-            turn_id=db_turn.id,
+            turn=db_turn,
             responses=responses
         )
+        
+        # Update the database with model and provider information
+        for saved_resp in saved_responses:
+            if saved_resp.model_implementation_id:
+                model_info = model_info_cache.get(str(saved_resp.model_implementation_id), {})
+                if not saved_resp.metadata:
+                    saved_resp.metadata = {}
+                saved_resp.metadata.update({
+                    "model_name": model_info.get("model_name", "Unknown Model"),
+                    "provider_name": model_info.get("provider_name", "Unknown Provider")
+                })
+                
+        db.commit()
         
         # Signal completion
         yield "event: end\n"

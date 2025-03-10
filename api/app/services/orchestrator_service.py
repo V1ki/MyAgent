@@ -1,9 +1,22 @@
 from sqlalchemy.orm import Session
 import asyncio
-from typing import List, Dict, Optional, Any
+from typing import Iterable, List, Dict, Optional, Any
 from uuid import UUID
 from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletionMessageParam
 import logging
+
+
+# Add this at the top of the file after imports
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()  # Outputs to console
+    ]
+)
+
+
 
 from app.models.provider import ModelImplementation, ApiKey
 from app.models.conversation import ConversationTurn, ModelResponse
@@ -17,12 +30,36 @@ class ModelOrchestrator:
     Service responsible for coordinating parallel model API calls,
     aggregating responses, and managing the communication with LLM providers.
     """
+    
+    @staticmethod
+    def _convert_camel_to_snake_case(camel_case_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Convert dictionary keys from camelCase to snake_case.
+        For example, 'topP' becomes 'top_p'.
+        """
+        snake_case_dict = {}
+        for key, value in camel_case_dict.items():
+            # Handle common parameter conversions explicitly
+            if key == "topP":
+                snake_case_dict["top_p"] = value
+            elif key == "maxTokens":
+                snake_case_dict["max_tokens"] = value
+            elif key == "frequencyPenalty":
+                snake_case_dict["frequency_penalty"] = value
+            elif key == "presencePenalty":
+                snake_case_dict["presence_penalty"] = value
+            # General camelCase to snake_case conversion
+            else:
+                # Convert camelCase to snake_case (e.g., camelCase -> camel_case)
+                snake_key = ''.join(['_' + c.lower() if c.isupper() else c for c in key]).lstrip('_')
+                snake_case_dict[snake_key] = value
+        return snake_case_dict
 
     @staticmethod
     async def call_openai_compatible_api(
         client: AsyncOpenAI,
         provider_model_id: str,
-        prompt: str,
+        messages: str | Iterable[ChatCompletionMessageParam],
         parameters: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
@@ -30,9 +67,13 @@ class ModelOrchestrator:
         """
         try:
             # Prepare messages
-            messages = [{"role": "user", "content": prompt}]
+            if isinstance(messages, str):
+                messages = [{"role": "user", "content": messages}]
             
-            # Extract parameters compatible with OpenAI API
+            # Ensure parameters are in snake_case format
+            snake_parameters = ModelOrchestrator._convert_camel_to_snake_case(parameters)
+            
+            # Prepare base OpenAI API parameters
             openai_params = {
                 "model": provider_model_id,
                 "messages": messages,
@@ -40,16 +81,18 @@ class ModelOrchestrator:
             
             # Add common parameters if provided
             for param in ["temperature", "top_p", "n", "max_tokens", "presence_penalty", "frequency_penalty"]:
-                if param in parameters:
-                    openai_params[param] = parameters[param]
+                if param in snake_parameters:
+                    openai_params[param] = snake_parameters[param]
             
             # Include any additional parameters
-            for key, value in parameters.items():
+            for key, value in snake_parameters.items():
                 if key not in openai_params and key not in ["messages", "model"]:
                     openai_params[key] = value
             
+            logging.info(f"Calling OpenAI API with parameters: {openai_params}")
             # Make the API call
             response = await client.chat.completions.create(**openai_params)
+            logging.info(f"Received response: {response}")
             
             # Convert response to dictionary
             # Note: AsyncOpenAI client returns pydantic models that need to be converted
@@ -64,7 +107,7 @@ class ModelOrchestrator:
     async def call_model_implementation(
         db: Session,
         implementation_id: UUID,
-        prompt: str,
+        messages: str | Iterable[ChatCompletionMessageParam],
         parameters: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
@@ -106,7 +149,7 @@ class ModelOrchestrator:
             result = await ModelOrchestrator.call_openai_compatible_api(
                 client=client,
                 provider_model_id=implementation.provider_model_id,
-                prompt=prompt,
+                messages=messages,
                 parameters=merged_parameters
             )
             
@@ -176,7 +219,7 @@ class ModelOrchestrator:
     async def orchestrate_model_calls(
         db: Session,
         implementation_ids: List[UUID],
-        prompt: str,
+        messages: str | Iterable[ChatCompletionMessageParam],
         parameters: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
         """
@@ -187,7 +230,7 @@ class ModelOrchestrator:
             ModelOrchestrator.call_model_implementation(
                 db=db,
                 implementation_id=impl_id,
-                prompt=prompt,
+                messages=messages,
                 parameters=parameters
             )
             for impl_id in implementation_ids
@@ -204,7 +247,7 @@ class ModelOrchestrator:
     @staticmethod
     def save_model_responses(
         db: Session,
-        turn_id: UUID,
+        turn: ConversationTurn,
         responses: List[Dict[str, Any]],
         input_version_id: Optional[UUID] = None
     ) -> List[ModelResponse]:
@@ -215,7 +258,7 @@ class ModelOrchestrator:
         
         for response in responses:
             model_response = ModelResponseCreate(
-                turn_id=turn_id,
+                turn_id=turn.id,
                 model_implementation_id=UUID(response["implementation_id"]) if response["implementation_id"] else None,
                 content=response["content"],
                 response_metadata=response["metadata"],  # Changed from metadata to response_metadata
@@ -238,5 +281,12 @@ class ModelOrchestrator:
             db.commit()
             db.refresh(db_response)
             saved_responses.append(db_response)
-            
+        
+        if len(saved_responses) == 1:
+            turn.active_response_id = saved_responses[0].id
+            saved_responses[0].is_selected = True
+            db.commit()
+            db.refresh(turn)
+            db.refresh(saved_responses[0])
+
         return saved_responses
