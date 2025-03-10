@@ -223,12 +223,8 @@ def test_delete_turn(client, conversation_id):
     )
     turn_id = response.json()["id"]
     
-    # Delete (soft delete) the turn
     response = client.delete(f"/conversations/{conversation_id}/turns/{turn_id}")
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert data["is_deleted"] is True  # Should be soft deleted
-    
+    assert response.status_code == status.HTTP_204_NO_CONTENT
     # The turn should still be retrievable, but marked as deleted
     response = client.get(f"/conversations/{conversation_id}/turns/{turn_id}")
     assert response.status_code == status.HTTP_404_NOT_FOUND

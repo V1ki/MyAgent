@@ -215,7 +215,7 @@ def update_conversation_turn(
         )
     return updated_turn
 
-@router.delete("/{conversation_id}/turns/{turn_id}", response_model=ConversationTurnRead)
+@router.delete("/{conversation_id}/turns/{turn_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_conversation_turn(
     conversation_id: UUID,
     turn_id: UUID,
@@ -363,7 +363,7 @@ def select_response(
     
     return response
 
-@router.delete("/{conversation_id}/turns/{turn_id}/responses/{response_id}", response_model=ModelResponseRead)
+@router.delete("/{conversation_id}/turns/{turn_id}/responses/{response_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_model_response(
     conversation_id: UUID,
     turn_id: UUID,

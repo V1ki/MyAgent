@@ -4,25 +4,25 @@ from typing import Iterable, List, Dict, Optional, Any
 from uuid import UUID
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
-import logging
-
+from logging import getLogger, basicConfig,INFO, StreamHandler
 
 # Add this at the top of the file after imports
-logging.basicConfig(
-    level=logging.INFO,
+basicConfig(
+    level=INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler()  # Outputs to console
+        StreamHandler()  # Outputs to console
     ]
 )
-
-
 
 from app.models.provider import ModelImplementation, ApiKey
 from app.models.conversation import ConversationTurn, ModelResponse
 from app.models.schemas import ModelResponseCreate
 from app.services.model_service import ModelImplementationService
 from app.services.provider_service import ProviderService
+
+
+logger = getLogger(__name__)
 
 
 class ModelOrchestrator:
@@ -89,10 +89,10 @@ class ModelOrchestrator:
                 if key not in openai_params and key not in ["messages", "model"]:
                     openai_params[key] = value
             
-            logging.info(f"Calling OpenAI API with parameters: {openai_params}")
+            logger.info(f"Calling OpenAI API with parameters: {openai_params}")
             # Make the API call
             response = await client.chat.completions.create(**openai_params)
-            logging.info(f"Received response: {response}")
+            logger.info(f"Received response: {response}")
             
             # Convert response to dictionary
             # Note: AsyncOpenAI client returns pydantic models that need to be converted
@@ -100,7 +100,7 @@ class ModelOrchestrator:
             
             return response_dict
         except Exception as e:
-            logging.error(f"Error calling OpenAI API: {str(e)}")
+            logger.error(f"Error calling OpenAI API: {str(e)}")
             return {"error": f"API error: {str(e)}"}
 
     @staticmethod
@@ -145,6 +145,7 @@ class ModelOrchestrator:
                 base_url=provider.base_url
             )
             
+            start_time = asyncio.get_event_loop().time()
             # Call the model
             result = await ModelOrchestrator.call_openai_compatible_api(
                 client=client,
@@ -152,15 +153,17 @@ class ModelOrchestrator:
                 messages=messages,
                 parameters=merged_parameters
             )
-            
+            end_time = asyncio.get_event_loop().time()
+            logger.info(f"response: {result}")
             return {
                 "implementation_id": str(implementation_id),
                 "model_name": implementation.provider_model_id,
                 "provider_name": provider.name,
-                "result": result
+                "result": result,
+                "response_time": end_time - start_time
             }
         except Exception as e:
-            logging.error(f"Error calling model implementation: {str(e)}")
+            logger.error(f"Error calling model implementation: {str(e)}")
             return {
                 "implementation_id": str(implementation_id),
                 "model_name": implementation.provider_model_id,
@@ -206,7 +209,9 @@ class ModelOrchestrator:
                         "model": result.get("model", ""),
                         "usage": result.get("usage", {}),
                         "created": result.get("created", ""),
-                        "id": result.get("id", "")
+                        "id": result.get("id", ""),
+                        "response_time": response.get("response_time", 0)
+
                     }
                 except Exception as e:
                     processed_response["error"] = f"Error processing response: {str(e)}"
@@ -271,22 +276,16 @@ class ModelOrchestrator:
                 turn_id=model_response.turn_id,
                 model_implementation_id=model_response.model_implementation_id,
                 content=model_response.content,
-                metadata=model_response.response_metadata,  # Changed from metadata to metadata
+                response_metadata=model_response.response_metadata,  # Use the aliased name
                 is_selected=model_response.is_selected,
-                is_deleted=False,  # This isn't in the create schema, set directly
                 input_version_id=model_response.input_version_id
             )
+            if len(responses) == 1:
+                db_response.is_selected = True
             
             db.add(db_response)
             db.commit()
             db.refresh(db_response)
             saved_responses.append(db_response)
         
-        if len(saved_responses) == 1:
-            turn.active_response_id = saved_responses[0].id
-            saved_responses[0].is_selected = True
-            db.commit()
-            db.refresh(turn)
-            db.refresh(saved_responses[0])
-
         return saved_responses

@@ -138,18 +138,18 @@ class ConversationTurnService:
         return db_turn
 
     @staticmethod
-    def delete_conversation_turn(db: Session, turn_id: UUID) -> Optional[ConversationTurn]:
+    def delete_conversation_turn(db: Session, turn_id: UUID) -> bool:
         """Soft delete a turn (mark as deleted)."""
         db_turn = ConversationTurnService.get_conversation_turn(db, turn_id)
         if db_turn is None:
-            return None
+            return False
         
         # delete all responses associated with this turn
         for response in db_turn.responses:
             db.delete(response)
         db.delete(db_turn)
         db.commit()
-        return None
+        return True
 
     @staticmethod
     def set_active_response(db: Session, turn_id: UUID, response_id: UUID) -> Optional[ConversationTurn]:
@@ -245,7 +245,7 @@ class ModelResponseService:
             model_implementation_id=response_data.model_implementation_id,
             content=response_data.content,
             is_selected=response_data.is_selected,
-            response_metadata=response_data.metadata,
+            response_metadata=response_data.response_metadata,
             input_version_id=response_data.input_version_id
         )
         db.add(db_response)
@@ -284,11 +284,11 @@ class ModelResponseService:
         return response
 
     @staticmethod
-    def delete_model_response(db: Session, response_id: UUID) -> Optional[ModelResponse]:
+    def delete_model_response(db: Session, response_id: UUID) -> bool:
         """Soft delete a model response (mark as deleted)."""
         response = ModelResponseService.get_model_response(db, response_id)
         if response is None:
-            return None
+            return False
             
         db.delete(response)
         
@@ -301,7 +301,7 @@ class ModelResponseService:
             turn.active_response_id = None
         
         db.commit()
-        return response
+        return True
 
 class ParameterPresetService:
     @staticmethod

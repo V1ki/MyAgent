@@ -124,13 +124,15 @@ async def chat_with_multiple_models(
             {
                 "id": str(resp.id),
                 "model_implementation_id": str(resp.model_implementation_id) if resp.model_implementation_id else None,
+                "model_implementation": resp.model_implementation,
                 "model_name": model_info_cache.get(str(resp.model_implementation_id), {}).get("model_name", "Unknown Model"),
                 "provider_name": model_info_cache.get(str(resp.model_implementation_id), {}).get("provider_name", "Unknown Provider"),
                 "content": resp.content,
                 "error": next(
                     (r["error"] for r in responses if r["implementation_id"] == str(resp.model_implementation_id)),
                     None
-                )
+                ),
+                "response_metadata": resp.response_metadata
             }
             for resp in saved_responses
         ]
@@ -220,23 +222,12 @@ async def stream_chat_with_multiple_models(
             await asyncio.sleep(0.1)
         
         # Save all responses to the database after streaming
-        saved_responses = ModelOrchestrator.save_model_responses(
+        ModelOrchestrator.save_model_responses(
             db=db,
             turn=db_turn,
             responses=responses
         )
         
-        # Update the database with model and provider information
-        for saved_resp in saved_responses:
-            if saved_resp.model_implementation_id:
-                model_info = model_info_cache.get(str(saved_resp.model_implementation_id), {})
-                if not saved_resp.metadata:
-                    saved_resp.metadata = {}
-                saved_resp.metadata.update({
-                    "model_name": model_info.get("model_name", "Unknown Model"),
-                    "provider_name": model_info.get("provider_name", "Unknown Provider")
-                })
-                
         db.commit()
         
         # Signal completion
