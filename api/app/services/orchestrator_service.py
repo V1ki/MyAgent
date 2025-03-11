@@ -254,20 +254,22 @@ class ModelOrchestrator:
         db: Session,
         turn: ConversationTurn,
         responses: List[Dict[str, Any]],
-        input_version_id: Optional[UUID] = None
+        input_version_id: Optional[UUID] = None,
+        prev_prompt_token_count: Optional[int] = None
     ) -> List[ModelResponse]:
         """
         Save model responses to the database.
         """
         saved_responses = []
         
-        for response in responses:
+        # calculate the prompt token count
+        for i, response in enumerate(responses):
             model_response = ModelResponseCreate(
                 turn_id=turn.id,
                 model_implementation_id=UUID(response["implementation_id"]) if response["implementation_id"] else None,
                 content=response["content"],
                 response_metadata=response["metadata"],  # Changed from metadata to response_metadata
-                is_selected=False,
+                is_selected=(i == 0),  # Select the first response by default
                 input_version_id=input_version_id
             )
             
@@ -280,12 +282,19 @@ class ModelOrchestrator:
                 is_selected=model_response.is_selected,
                 input_version_id=model_response.input_version_id
             )
-            if len(responses) == 1:
-                db_response.is_selected = True
             
             db.add(db_response)
             db.commit()
             db.refresh(db_response)
             saved_responses.append(db_response)
+        turn.active_response_id = saved_responses[0].id if saved_responses else None
+        prompt_token_count = saved_responses[0].response_metadata.get("usage", {}).get("prompt_tokens", 0) if saved_responses else 0
+
+        if prev_prompt_token_count:
+            prompt_token_count -= prev_prompt_token_count
+
+        turn.prompt_token_count = prompt_token_count
+        db.commit()
+        db.refresh(turn)
         
         return saved_responses

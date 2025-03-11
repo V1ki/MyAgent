@@ -249,7 +249,7 @@ class ConversationTurnRead(ConversationTurnBase):
     created_at: datetime
     modified_at: datetime
     active_response_id: Optional[UUID] = None
-    
+    prompt_token_count: Optional[int] = Field(0, description="Token count for the prompt")
     model_config = ConfigDict(from_attributes=True)
 
 class ConversationTurnDetailedRead(ConversationTurnRead):

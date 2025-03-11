@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from uuid import UUID
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from openai.types.chat import ChatCompletionMessageParam
 import uuid
 
@@ -70,19 +70,23 @@ class ConversationService:
         db.commit()
         return True
     @staticmethod
-    def build_message(conversation: Conversation) -> List[ChatCompletionMessageParam]:
+    def build_message(conversation: Conversation) -> Tuple[List[ChatCompletionMessageParam], int]:
         """Build a message for a conversation."""
         if conversation is None:
             return []
         messages = []
+        prompt_count = 0
         for turn in conversation.turns:
             user_input = turn.user_input
+            prompt_count += turn.prompt_token_count or 0
             if user_input:
                 messages.append({"role": "user", "content": user_input})
             active_response = turn.active_response
             if active_response:
                 messages.append({"role": "assistant", "content": active_response.content})
-        return messages
+                if active_response.response_metadata:
+                    prompt_count += active_response.response_metadata.get("usage", {}).get("completion_tokens", 0)
+        return messages, prompt_count
             
 
 class ConversationTurnService:
@@ -162,6 +166,7 @@ class ConversationTurnService:
         db.commit()
         db.refresh(db_turn)
         return db_turn
+    
 
 class UserInputVersionService:
     @staticmethod

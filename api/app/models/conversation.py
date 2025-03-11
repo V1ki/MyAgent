@@ -33,6 +33,7 @@ class ConversationTurn(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     conversation_id = Column(UUID(as_uuid=True), ForeignKey("conversations.id"), nullable=False)
     user_input = Column(Text, nullable=False)
+    prompt_token_count = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     modified_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     model_parameters = Column(JSONB, nullable=True)
@@ -62,6 +63,7 @@ class UserInputVersion(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     model_parameters = Column(JSONB, nullable=True)
     is_current = Column(Boolean, default=True)
+    token_count = Column(Integer, nullable=True)
     
     # Relationships
     turn = relationship("ConversationTurn", back_populates="input_versions")
