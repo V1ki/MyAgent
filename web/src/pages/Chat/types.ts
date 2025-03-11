@@ -73,8 +73,8 @@ export const apiResponseToModelResponse = (
     providerName: apiResponse.model_implementation?.provider_id || 'Unknown Provider',
     timestamp: timestamp,
     // Provide default values for fields that might be undefined
-    tokenCount: apiResponse.metadata?.token_count || 0,
-    responseTime: apiResponse.metadata?.response_time || 0,
+    tokenCount: apiResponse.response_metadata?.usage?.completion_tokens || 0,
+    responseTime: parseFloat((apiResponse.response_metadata?.response_time ?? 0).toFixed(2)),
     isSelected: apiResponse.is_selected || false,
   };
 };

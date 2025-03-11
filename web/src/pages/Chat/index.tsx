@@ -1,11 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { Button, Input, message } from 'antd';
-import { SendOutlined, SettingOutlined, RobotOutlined, PlusOutlined } from '@ant-design/icons';
+import { Button, Input } from 'antd';
+import { SendOutlined, SettingOutlined, RobotOutlined } from '@ant-design/icons';
 import Conversation from './components/Conversation';
 import ModelSelector from './components/ModelSelector';
 import SettingsPanel from './components/SettingsPanel';
 import ConversationList from './components/ConversationList';
-import { useChat, ConversationProvider, useConversations , useModels, useParameterPresets} from './hooks';
+import { useConversations , useModels, useParameterPresets} from './hooks';
 
 
 const Chat: React.FC = () => {

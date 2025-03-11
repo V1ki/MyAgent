@@ -159,6 +159,7 @@ export interface ConversationTurnRead {
   is_deleted: boolean;
   model_parameters?: Record<string, any>;
   active_response_id?: string;
+  prompt_token_count?: number;
 }
 
 export interface ConversationTurnDetailedRead extends ConversationTurnRead {
@@ -196,7 +197,7 @@ export interface ModelResponseRead {
   created_at: string;
   is_selected: boolean;
   is_deleted: boolean;
-  metadata?: Record<string, any>;
+  response_metadata?: Record<string, any>;
   input_version_id?: string;
 }
 
@@ -228,6 +229,7 @@ export interface MultiModelChatRequest {
 export interface MultiModelChatResponse {
   turn_id: string;
   responses: ModelResponseRead[];
+  prompt_token_count?: number;
 }
 
 export interface SelectResponseRequest {

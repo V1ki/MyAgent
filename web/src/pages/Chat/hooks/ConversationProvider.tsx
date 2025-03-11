@@ -53,7 +53,7 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 userMessage: {
                   content: turn.user_input,
                   timestamp: new Date(turn.created_at).toLocaleTimeString(),
-                  tokenCount: 0
+                  tokenCount: turn.prompt_token_count || 0
                 },
                 modelResponses: turnDetail.responses.map((response) => apiResponseToModelResponse(response, timestamp)),
                 selectedModelId: turn.active_response_id,
@@ -282,7 +282,12 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       updateTurn(tempTurnId, {
         id: response.turn_id,
-        modelResponses
+        modelResponses,
+        userMessage: {
+          content: inputMessage,
+          timestamp,
+          tokenCount: response.prompt_token_count || 0
+        }
       });
       
       return true;
