@@ -101,6 +101,11 @@ class ApiKeyService:
             return None
             
         update_data = api_key.model_dump(exclude_unset=True)
+        
+        # Skip empty key strings - preserve the original key when empty string is provided
+        if "key" in update_data and update_data["key"] == "":
+            update_data.pop("key")
+            
         for key, value in update_data.items():
             setattr(db_api_key, key, value)
             

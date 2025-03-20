@@ -110,6 +110,84 @@ def test_update_api_key(client, provider_id):
     data = response.json()
     assert data["alias"] == "UpdatedKey"
 
+def test_update_api_key_alias_only(client):
+    """Test updating only an API key's alias while keeping the original key."""
+    # Create a provider with an initial API key
+    response = client.post(
+        "/providers/",
+        json={
+            "name": "KeyUpdateTest",
+            "base_url": "https://api.key-update-test.com",
+            "initial_api_key": {
+                "alias": "OriginalAlias",
+                "key": "sk-original-key-12345678"
+            }
+        }
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    provider_id = response.json()["id"]
+    
+    # Get the provider details to get the API key ID
+    response = client.get(f"/providers/{provider_id}")
+    assert response.status_code == status.HTTP_200_OK
+    api_key_id = response.json()["api_keys"][0]["id"]
+    original_key_preview = response.json()["api_keys"][0]["key_preview"]
+    
+    # Update only the alias, leaving the key field empty
+    response = client.put(
+        f"/keys/{api_key_id}",
+        json={
+            "alias": "UpdatedAlias"
+        }
+    )
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["alias"] == "UpdatedAlias"
+    assert data["key_preview"] == original_key_preview
+    
+    # Verify that the key remains unchanged by retrieving the provider again
+    response = client.get(f"/providers/{provider_id}")
+    assert response.status_code == status.HTTP_200_OK
+    updated_key = next((key for key in response.json()["api_keys"] if key["id"] == api_key_id), None)
+    assert updated_key is not None
+    assert updated_key["alias"] == "UpdatedAlias"
+    assert updated_key["key_preview"] == original_key_preview
+
+
+def test_update_api_key_empty_string(client, provider_id):
+    """Test updating an API key with empty string for key preserves the original key."""
+    # Create a test API key
+    response = client.post(
+        f"/providers/{provider_id}/keys",
+        json={
+            "alias": "EmptyStringKey",
+            "key": "sk-original-12345678"
+        }
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    key_id = response.json()["id"]
+    original_key_preview = response.json()["key_preview"]
+    
+    # Update the API key with empty string for key
+    response = client.put(
+        f"/keys/{key_id}",
+        json={
+            "alias": "UpdatedEmptyString",
+            "key": ""
+        }
+    )
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["alias"] == "UpdatedEmptyString"
+    assert data["key_preview"] == original_key_preview  # Key preview should remain the same
+    
+    # Verify the update by retrieving the key again
+    response = client.get(f"/keys/{key_id}")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["alias"] == "UpdatedEmptyString"
+    assert data["key_preview"] == original_key_preview  # Key should not have changed
+
 def test_delete_api_key(client, provider_id):
     """Test deleting an API key."""
     # Create a test API key
