@@ -2,6 +2,7 @@ version: "3.9"
 
 services:
   db:
+    container_name: my_agent_db
     image: pgvector/pgvector:pg17
     environment:
       POSTGRES_USER: postgres
@@ -11,6 +12,6 @@ services:
       - "5432:5432"
     volumes:
       - ../data/pgdata:/var/lib/postgresql/data
-
+    restart: always
 volumes:
   pgdata:
