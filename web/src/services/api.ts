@@ -5,21 +5,11 @@ import {
   Model,
   ModelImplementation,
   FrontendModel,
-  FrontendModelImplementation,
-  ConversationCreate,
-  ConversationRead,
-  ConversationDetailedRead,
-  ConversationTurnCreate,
-  ConversationTurnRead,
-  ConversationTurnDetailedRead,
-  ParameterPresetCreate,
-  ParameterPresetRead,
-  MultiModelChatRequest,
-  MultiModelChatResponse,
+  FrontendModelImplementation
 } from '../types/api';
 
 // Define the base URL for API calls
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:18000';
 
 // Helper function for fetch requests
 const fetchAPI = async (endpoint: string, options: RequestInit = {}): Promise<any> => {
@@ -323,124 +313,6 @@ export const modelService = {
   deleteModelImplementation: async (id: string): Promise<void> => {
     await fetchAPI(`/models/implementations/${id}`, {
       method: 'DELETE',
-    });
-  },
-};
-
-// Conversation and Chat service
-export const conversationService = {
-  // Get all conversations
-  getConversations: async (skip = 0, limit = 100): Promise<ConversationRead[]> => {
-    return fetchAPI(`/conversations/?skip=${skip}&limit=${limit}`);
-  },
-
-  // Get a specific conversation with details
-  getConversation: async (id: string): Promise<ConversationDetailedRead> => {
-    return fetchAPI(`/conversations/${id}`);
-  },
-
-  // Create a new conversation
-  createConversation: async (conversation: ConversationCreate): Promise<ConversationRead> => {
-    return fetchAPI('/conversations/', {
-      method: 'POST',
-      body: JSON.stringify(conversation)
-    });
-  },
-
-  // Update a conversation
-  updateConversation: async (id: string, conversation: Partial<ConversationCreate>): Promise<ConversationRead> => {
-    return fetchAPI(`/conversations/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(conversation)
-    });
-  },
-
-  // Delete a conversation
-  deleteConversation: async (id: string): Promise<void> => {
-    return fetchAPI(`/conversations/${id}`, {
-      method: 'DELETE'
-    });
-  },
-
-  // Get conversation turns
-  getConversationTurns: async (conversationId: string, skip = 0, limit = 100): Promise<ConversationTurnRead[]> => {
-    return fetchAPI(`/conversations/${conversationId}/turns?skip=${skip}&limit=${limit}`);
-  },
-
-  // Get a specific turn with details
-  getConversationTurn: async (conversationId: string, turnId: string): Promise<ConversationTurnDetailedRead> => {
-    return fetchAPI(`/conversations/${conversationId}/turns/${turnId}`);
-  },
-
-  // Create a new turn
-  createConversationTurn: async (conversationId: string, turn: ConversationTurnCreate): Promise<ConversationTurnRead> => {
-    return fetchAPI(`/conversations/${conversationId}/turns`, {
-      method: 'POST',
-      body: JSON.stringify(turn)
-    });
-  },
-
-  // Delete a turn (soft delete)
-  deleteConversationTurn: async (conversationId: string, turnId: string): Promise<ConversationTurnRead> => {
-    return fetchAPI(`/conversations/${conversationId}/turns/${turnId}`, {
-      method: 'DELETE'
-    });
-  },
-
-  // Get parameter presets
-  getParameterPresets: async (skip = 0, limit = 100): Promise<ParameterPresetRead[]> => {
-    return fetchAPI(`/conversations/parameter-presets?skip=${skip}&limit=${limit}`);
-  },
-
-  // Create a parameter preset
-  createParameterPreset: async (preset: ParameterPresetCreate): Promise<ParameterPresetRead> => {
-    return fetchAPI('/conversations/parameter-presets', {
-      method: 'POST',
-      body: JSON.stringify(preset)
-    });
-  },
-
-  // Delete a parameter preset
-  deleteParameterPreset: async (id: string): Promise<void> => {
-    return fetchAPI(`/conversations/parameter-presets/${id}`, {
-      method: 'DELETE'
-    });
-  },
-};
-
-// Multi-model chat service
-export const chatService = {
-  // Send a message to multiple models
-  sendMultiModelMessage: async (request: MultiModelChatRequest): Promise<MultiModelChatResponse> => {
-    return fetchAPI('/chat/multi', {
-      method: 'POST',
-      body: JSON.stringify(request)
-    });
-  },
-
-  // Stream a message to multiple models
-  streamMultiModelMessage: (
-    conversationId: string,
-    modelIds: string[],
-    message: string,
-    parameters?: Record<string, any>
-  ): EventSource => {
-    const params = new URLSearchParams({
-      conversation_id: conversationId,
-      models: modelIds.join(','),
-      message
-    });
-    if (parameters) {
-      params.append('parameters', JSON.stringify(parameters));
-    }
-    
-    return new EventSource(`${BASE_URL}/chat/multi/stream?${params.toString()}`);
-  },
-
-  // Select a response as context
-  selectResponseAsContext: async (turnId: string, responseId: string): Promise<{ status: string; selected_response_id: string }> => {
-    return fetchAPI(`/chat/turns/${turnId}/select-response/${responseId}`, {
-      method: 'PUT'
     });
   },
 };
