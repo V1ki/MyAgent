@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.routers import providers, api_keys, models, conversations, multi_chat
+from app.routers import providers, api_keys, models
 from app.db.database import init_pgvector, SessionLocal
 from app.db.init_data import initialize_database
 
@@ -44,8 +44,6 @@ app.router.lifespan_context = lifespan
 app.include_router(providers.router)
 app.include_router(api_keys.router)
 app.include_router(models.router)
-app.include_router(conversations.router)
-app.include_router(multi_chat.router)  # Add the multi_chat router
 
 @app.get("/")
 async def root():
