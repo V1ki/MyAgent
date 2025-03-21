@@ -1,7 +1,7 @@
 // filepath: /Users/v1ki/Documents/projs/work/my_agent/web/src/pages/ModelProviders/components/ApiKeyForm.tsx
 import React, { useEffect } from 'react';
 import { Form, Input, Modal } from 'antd';
-import { FrontendApiKey } from '../types';
+import { FrontendApiKey } from '../../../types/api';
 
 interface ApiKeyFormProps {
   visible: boolean;

@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import { Form, Input, Modal, Select } from 'antd';
-import { FrontendModel } from '../../../services/api';
+import { Model } from '../../../types/api';
 
 interface ModelFormProps {
   visible: boolean;
-  model: FrontendModel | null;
+  model: Model | null;
   loading: boolean;
   onSubmit: (values: any) => void;
   onCancel: () => void;

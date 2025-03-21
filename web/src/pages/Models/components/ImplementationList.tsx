@@ -1,12 +1,12 @@
 import React from 'react';
 import { Table, Button, Space, Popconfirm, Tag, Tooltip } from 'antd';
 import { EditOutlined, DeleteOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { FrontendModelImplementation, ModelProvider, FrontendModel } from '../../../services/api';
+import { FrontendModelImplementation, Model, FrontendModelProvider } from '../../../types/api';
 
 interface ImplementationListProps {
   implementations: FrontendModelImplementation[];
-  providers: ModelProvider[];
-  model: FrontendModel;
+  providers: FrontendModelProvider[];
+  model: Model;
   loading: boolean;
   onEdit: (implementation: FrontendModelImplementation) => void;
   onDelete: (id: string) => void;

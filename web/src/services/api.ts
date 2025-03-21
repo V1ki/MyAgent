@@ -4,7 +4,7 @@ import {
   ModelProvider,
   Model,
   ModelImplementation,
-  FrontendModel,
+  FrontendModelProvider,
   FrontendModelImplementation
 } from '../types/api';
 

@@ -2,7 +2,6 @@
 import { useState, useCallback } from 'react';
 import { message } from 'antd';
 import { apiKeyService } from '../../../services/api';
-import { FrontendApiKey } from '../types';
 
 interface UseApiKeysReturn {
   loading: boolean;

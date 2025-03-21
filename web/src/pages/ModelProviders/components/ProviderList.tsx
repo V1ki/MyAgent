@@ -2,7 +2,7 @@
 import React from 'react';
 import { Table, Button, Space, Popconfirm } from 'antd';
 import { EditOutlined, DeleteOutlined, KeyOutlined } from '@ant-design/icons';
-import { FrontendModelProvider } from '../types';
+import { FrontendModelProvider } from '../../../types/api';
 
 interface ProviderListProps {
   providers: FrontendModelProvider[];

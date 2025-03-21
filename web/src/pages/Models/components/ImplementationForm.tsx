@@ -1,13 +1,13 @@
 import React, { useEffect } from 'react';
 import { Form, Modal, Select, Input } from 'antd';
-import { FrontendModelImplementation, ModelProvider } from '../../../services/api';
+import { FrontendModelImplementation, FrontendModelProvider } from '../../../types/api';
 
 const { Option } = Select;
 
 interface ImplementationFormProps {
   visible: boolean;
   implementation: FrontendModelImplementation | null;
-  providers: ModelProvider[];
+  providers: FrontendModelProvider[];
   loading: boolean;
   onSubmit: (values: any) => void;
   onCancel: () => void;

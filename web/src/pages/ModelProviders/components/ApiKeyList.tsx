@@ -2,7 +2,7 @@
 import React from 'react';
 import { Table, Button, Space, Popconfirm } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import { FrontendApiKey } from '../types';
+import { FrontendApiKey } from '../../../types/api';
 
 interface ApiKeyListProps {
   apiKeys: FrontendApiKey[];
@@ -19,6 +19,7 @@ const ApiKeyList: React.FC<ApiKeyListProps> = ({
   onEdit,
   onDelete
 }) => {
+  console.log('API Keys:', apiKeys);
   const columns = [
     {
       title: '别名',

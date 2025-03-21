@@ -1,7 +1,7 @@
 // filepath: /Users/v1ki/Documents/projs/work/my_agent/web/src/pages/ModelProviders/components/ProviderDetail.tsx
 import React from 'react';
 import { Button } from 'antd';
-import { FrontendModelProvider } from '../types';
+import { FrontendModelProvider } from '../../../types/api';
 
 interface ProviderDetailProps {
   provider: FrontendModelProvider;

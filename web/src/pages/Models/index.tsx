@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Alert } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
-import { providerService, FrontendModel, FrontendModelImplementation, ModelProvider } from '../../services/api';
+import {providerService} from '../../services/api';
+import { Model, FrontendModelImplementation, FrontendModelProvider } from '../../types/api';
 
 // Components
 import ModelList from './components/ModelList';
@@ -37,13 +38,13 @@ const Models: React.FC = () => {
   } = useImplementations();
 
   // Providers state
-  const [providers, setProviders] = useState<ModelProvider[]>([]);
+  const [providers, setProviders] = useState<FrontendModelProvider[]>([]);
   const [providerError, setProviderError] = useState<string|null>(null);
 
   // UI state
-  const [currentModel, setCurrentModel] = useState<FrontendModel | null>(null);
+  const [currentModel, setCurrentModel] = useState<Model | null>(null);
   const [isModelModalVisible, setIsModelModalVisible] = useState(false);
-  const [editingModel, setEditingModel] = useState<FrontendModel | null>(null);
+  const [editingModel, setEditingModel] = useState<Model | null>(null);
   const [isImplementationModalVisible, setIsImplementationModalVisible] = useState(false);
   const [editingImplementation, setEditingImplementation] = useState<FrontendModelImplementation | null>(null);
 

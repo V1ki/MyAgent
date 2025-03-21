@@ -2,7 +2,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { message } from 'antd';
 import { providerService } from '../../../services/api';
-import { FrontendModelProvider, toFrontendProvider } from '../types';
+import { FrontendModelProvider } from '../../../types/api';
+
 
 interface UseProvidersReturn {
   providers: FrontendModelProvider[];

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { message } from 'antd';
-import { modelService, FrontendModelImplementation } from '../../../services/api';
+import { modelService } from '../../../services/api';
+import { FrontendModelImplementation } from '../../../types/api';
 
 export const useImplementations = () => {
   const [implementations, setImplementations] = useState<FrontendModelImplementation[]>([]);

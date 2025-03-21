@@ -1,15 +1,15 @@
 import React from 'react';
 import { Table, Button, Space, Popconfirm, Tag } from 'antd';
 import { EditOutlined, DeleteOutlined, ApiOutlined } from '@ant-design/icons';
-import { FrontendModel, FrontendModelImplementation } from '../../../services/api';
+import { Model, FrontendModelImplementation } from '../../../types/api';
 
 interface ModelListProps {
-  models: FrontendModel[];
+  models: Model[];
   implementations: FrontendModelImplementation[];
   loading: boolean;
-  onEdit: (model: FrontendModel) => void;
+  onEdit: (model: Model) => void;
   onDelete: (id: string) => void;
-  onManageImplementations: (model: FrontendModel) => void;
+  onManageImplementations: (model: Model) => void;
 }
 
 const ModelList: React.FC<ModelListProps> = ({
@@ -69,7 +69,7 @@ const ModelList: React.FC<ModelListProps> = ({
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: FrontendModel) => (
+      render: (_: any, record: Model) => (
         <Space size="middle">
           <Button
             icon={<ApiOutlined />}

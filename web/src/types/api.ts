@@ -72,11 +72,6 @@ export interface Allowance {
   valid_period?: string;
 }
 
-// Frontend adapted interfaces (convert snake_case to camelCase)
-export interface FrontendModel extends Omit<Model, 'id'> {
-  id: string;
-}
-
 export interface FrontendModelImplementation {
   id: string;
   providerId: string;
@@ -123,3 +118,28 @@ export interface FrontendAllowance {
   requests?: number;
   validPeriod?: string;
 }
+
+export interface FrontendApiKey {
+  id: string;
+  alias: string;
+  key: string;
+}
+
+export interface FrontendModelProvider {
+  id: string;
+  name: string;
+  baseUrl: string;
+  description?: string;
+  apiKeys: FrontendApiKey[];
+  apiKeysCount: number;
+}
+
+// Helper function to convert backend data to frontend format
+export const toFrontendProvider = (provider: ModelProvider): FrontendModelProvider => ({
+  id: provider.id,
+  name: provider.name,
+  baseUrl: provider.base_url,
+  description: provider.description,
+  apiKeys: [],
+  apiKeysCount: provider.api_keys_count || 0
+});

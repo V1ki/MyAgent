@@ -1,7 +1,7 @@
 // filepath: /Users/v1ki/Documents/projs/work/my_agent/web/src/pages/ModelProviders/components/ProviderForm.tsx
 import React, { useEffect } from 'react';
 import { Form, Input, Typography, Modal } from 'antd';
-import { FrontendModelProvider } from '../types';
+import { FrontendModelProvider } from '../../../types/api';
 
 const { Text } = Typography;
 

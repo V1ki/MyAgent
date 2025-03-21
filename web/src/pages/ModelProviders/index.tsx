@@ -14,7 +14,7 @@ import { useProviders } from './hooks/useProviders';
 import { useApiKeys } from './hooks/useApiKeys';
 
 // Types
-import { FrontendModelProvider, FrontendApiKey } from './types';
+import { FrontendModelProvider, FrontendApiKey } from '../../types/api';
 
 const ModelProviders: React.FC = () => {
   // Provider state from hook

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { message } from 'antd';
-import { modelService, FrontendModel } from '../../../services/api';
+import { modelService } from '../../../services/api';
+import { Model } from '../../../types/api';
 
 export const useModels = () => {
-  const [models, setModels] = useState<FrontendModel[]>([]);
+  const [models, setModels] = useState<Model[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
