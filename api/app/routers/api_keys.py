@@ -64,7 +64,7 @@ def create_api_key(
         "key_preview": ApiKeyService.mask_api_key(db_api_key.key)
     }
 
-@router.get("/keys/{api_key_id}", response_model=ApiKeyReadWithMaskedKey)
+@router.get("/providers/{provider_id}/keys/{api_key_id}", response_model=ApiKeyReadWithMaskedKey)
 def get_api_key(
     api_key_id: UUID,
     db: Session = Depends(get_db)
@@ -85,7 +85,7 @@ def get_api_key(
         "key_preview": ApiKeyService.mask_api_key(api_key.key)
     }
 
-@router.put("/keys/{api_key_id}", response_model=ApiKeyReadWithMaskedKey)
+@router.put("/providers/{provider_id}/keys/{api_key_id}", response_model=ApiKeyReadWithMaskedKey)
 def update_api_key(
     api_key_id: UUID,
     api_key: ApiKeyUpdate,
@@ -110,7 +110,7 @@ def update_api_key(
         "key_preview": ApiKeyService.mask_api_key(updated_api_key.key)
     }
 
-@router.delete("/keys/{api_key_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/providers/{provider_id}/keys/{api_key_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_api_key(
     api_key_id: UUID,
     db: Session = Depends(get_db)

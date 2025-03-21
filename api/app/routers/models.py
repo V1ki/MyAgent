@@ -141,7 +141,7 @@ def create_model_implementation(
     
     return ModelImplementationService.create_implementation(db, ModelImplementationCreate(**implementation_data))
 
-@router.get("/implementations/{implementation_id}", response_model=ModelImplementationRead)
+@router.get("/{model_id}/implementations/{implementation_id}", response_model=ModelImplementationRead)
 def get_implementation(
     implementation_id: UUID,
     db: Session = Depends(get_db)
@@ -155,7 +155,7 @@ def get_implementation(
         )
     return implementation
 
-@router.put("/implementations/{implementation_id}", response_model=ModelImplementationRead)
+@router.put("/{model_id}/implementations/{implementation_id}", response_model=ModelImplementationRead)
 def update_implementation(
     implementation_id: UUID,
     implementation: ModelImplementationUpdate,
@@ -177,7 +177,7 @@ def update_implementation(
     )
     return updated_implementation
 
-@router.delete("/implementations/{implementation_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{model_id}/implementations/{implementation_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_implementation(
     implementation_id: UUID,
     db: Session = Depends(get_db)
