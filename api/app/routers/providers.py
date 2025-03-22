@@ -42,6 +42,7 @@ def get_provider(
     
     # Create response with masked API keys
     response = ModelProviderDetailedRead.model_validate(provider)
+    response.api_keys_count = len(provider.api_keys)
     response.api_keys = [
         {
             "id": key.id,
