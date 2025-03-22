@@ -67,7 +67,7 @@ def test_get_api_key_by_id(client, provider_id):
     key_id = response.json()["id"]
     
     # Retrieve the key by ID
-    response = client.get(f"/keys/{key_id}")
+    response = client.get(f"/providers/{provider_id}/keys/{key_id}")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["alias"] == "GetByIDKey"
@@ -76,7 +76,7 @@ def test_get_api_key_by_id(client, provider_id):
 def test_get_nonexistent_api_key(client):
     """Test that retrieving a non-existent API key returns a 404."""
     non_existent_id = str(uuid.uuid4())
-    response = client.get(f"/keys/{non_existent_id}")
+    response = client.get(f"/providers/{provider_id}/keys/{non_existent_id}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 def test_update_api_key(client, provider_id):
@@ -94,7 +94,7 @@ def test_update_api_key(client, provider_id):
     
     # Update the API key
     response = client.put(
-        f"/keys/{key_id}",
+        f"/providers/{provider_id}/keys/{key_id}",
         json={
             "alias": "UpdatedKey",
             "key": "sk-updated-87654321"
@@ -105,7 +105,7 @@ def test_update_api_key(client, provider_id):
     assert data["alias"] == "UpdatedKey"
     
     # Verify the update by retrieving the key again
-    response = client.get(f"/keys/{key_id}")
+    response = client.get(f"/providers/{provider_id}/keys/{key_id}")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["alias"] == "UpdatedKey"
@@ -135,7 +135,7 @@ def test_update_api_key_alias_only(client):
     
     # Update only the alias, leaving the key field empty
     response = client.put(
-        f"/keys/{api_key_id}",
+        f"/providers/{provider_id}/keys/{api_key_id}",
         json={
             "alias": "UpdatedAlias"
         }
@@ -170,7 +170,7 @@ def test_update_api_key_empty_string(client, provider_id):
     
     # Update the API key with empty string for key
     response = client.put(
-        f"/keys/{key_id}",
+        f"/providers/{provider_id}/keys/{key_id}",
         json={
             "alias": "UpdatedEmptyString",
             "key": ""
@@ -182,7 +182,7 @@ def test_update_api_key_empty_string(client, provider_id):
     assert data["key_preview"] == original_key_preview  # Key preview should remain the same
     
     # Verify the update by retrieving the key again
-    response = client.get(f"/keys/{key_id}")
+    response = client.get(f"/providers/{provider_id}/keys/{key_id}")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["alias"] == "UpdatedEmptyString"
@@ -202,11 +202,11 @@ def test_delete_api_key(client, provider_id):
     key_id = response.json()["id"]
     
     # Delete the API key
-    response = client.delete(f"/keys/{key_id}")
+    response = client.delete(f"/providers/{provider_id}/keys/{key_id}")
     assert response.status_code == status.HTTP_204_NO_CONTENT
     
     # Verify the key is gone
-    response = client.get(f"/keys/{key_id}")
+    response = client.get(f"/providers/{provider_id}/keys/{key_id}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 def test_create_api_key_for_nonexistent_provider(client):
@@ -241,7 +241,7 @@ def test_partial_update_api_key(client, provider_id):
     
     # Update only the alias
     response = client.put(
-        f"/keys/{key_id}",
+        f"/providers/{provider_id}/keys/{key_id}",
         json={
             "alias": "PartiallyUpdatedKey"
         }
@@ -251,5 +251,5 @@ def test_partial_update_api_key(client, provider_id):
     assert data["alias"] == "PartiallyUpdatedKey"
     
     # The key should still be the same
-    response = client.get(f"/keys/{key_id}")
+    response = client.get(f"/providers/{provider_id}/keys/{key_id}")
     assert response.status_code == status.HTTP_200_OK
