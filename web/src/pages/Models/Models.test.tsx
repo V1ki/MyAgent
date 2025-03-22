@@ -2,12 +2,13 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderWithRouter } from '../../test/test-utils'
-import { modelService as originalModelService, providerService as originalProviderService, FrontendModel, FrontendModelImplementation, ModelProvider } from '../../services/api'
+import { modelService as originalModelService, providerService as originalProviderService } from '../../services/api'
+import { Model, FrontendModelImplementation, ModelProvider } from '../../types/api'
 import { resetMocks } from '../../test/mocks/api-mocks'
-import {act} from 'react';
+import { act } from 'react';
 
 // 定义初始mock数据
-const initialMockModels: FrontendModel[] = [
+const initialMockModels: Model[] = [
   {
     id: '1',
     name: 'GPT-4o',
@@ -82,65 +83,70 @@ type MockModelService = {
 type MockProviderService = {
   [K in keyof typeof originalProviderService]: ReturnType<typeof vi.fn>
 }
+type MockModelImplementService = {
+  [K in keyof typeof originalModelService.implementations]: ReturnType<typeof vi.fn>
+}
 
 // Mock API 模块
 vi.mock('../../services/api', () => {
   const mockModelService = {
-    getModels: vi.fn(),
-    getModel: vi.fn(),
-    createModel: vi.fn(),
-    updateModel: vi.fn(),
-    deleteModel: vi.fn(),
-    getModelImplementations: vi.fn(),
-    getModelImplementation: vi.fn(),
-    createModelImplementation: vi.fn(),
-    updateModelImplementation: vi.fn(),
-    deleteModelImplementation: vi.fn(),
+    getAll: vi.fn(),
+    getOne: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    implementations: {
+      getAll: vi.fn(),
+      getOne: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    }
   }
-
   const mockProviderService = {
-    getProviders: vi.fn(),
+    getAll: vi.fn(),
   }
-
   return {
     modelService: mockModelService,
     providerService: mockProviderService,
   }
 })
 
-let mockModels: FrontendModel[]
+let mockModels: Model[]
 let mockImplementations: FrontendModelImplementation[]
 let mockModelService: MockModelService
+let mockImplementationsService: MockModelImplementService
 let mockProviderService: MockProviderService
 
 describe('Models Component', () => {
   beforeEach(async () => {
     // 重置mock数据以确保测试隔离
     resetMocks()
-    
+
     // 在每个测试前重置mock数据
     mockModels = JSON.parse(JSON.stringify(initialMockModels))
     mockImplementations = JSON.parse(JSON.stringify(initialMockImplementations))
-    
+
     // 获取mock对象的引用
     const api = await import('../../services/api')
     mockModelService = api.modelService as unknown as MockModelService
     mockProviderService = api.providerService as unknown as MockProviderService
-    
+    mockImplementationsService = api.modelService.implementations as unknown as MockModelImplementService
+
     // 设置所有mock实现
-    mockModelService.getModels.mockImplementation(() => Promise.resolve([...mockModels]))
-    mockProviderService.getProviders.mockImplementation(() => Promise.resolve([...initialMockProviders]))
-    
-    mockModelService.getModel.mockImplementation((id: string) => {
+    mockModelService.getAll.mockImplementation(() => Promise.resolve([...mockModels]))
+    mockProviderService.getAll.mockImplementation(() => Promise.resolve([...initialMockProviders]))
+
+    mockModelService.getOne.mockImplementation((id: string) => {
       const model = mockModels.find(m => m.id === id)
       if (!model) {
         return Promise.reject(new Error(`Model with ID ${id} not found`))
       }
-      return Promise.resolve({...model})
+      return Promise.resolve({ ...model })
     })
-    
-    mockModelService.createModel.mockImplementation((model: Omit<FrontendModel, 'id'>) => {
-      const newModel: FrontendModel = {
+
+    mockModelService.create.mockImplementation((model: Omit<Model, 'id'>) => {
+      const newModel: Model = {
         id: `model-${Date.now()}`,
         name: model.name || '',
         description: model.description || '',
@@ -148,23 +154,23 @@ describe('Models Component', () => {
         family: model.family || '',
       }
       mockModels.push(newModel)
-      return Promise.resolve({...newModel})
+      return Promise.resolve({ ...newModel })
     })
-    
-    mockModelService.updateModel.mockImplementation((id: string, model: Partial<FrontendModel>) => {
+
+    mockModelService.update.mockImplementation((id: string, model: Partial<Model>) => {
       const index = mockModels.findIndex(m => m.id === id)
       if (index === -1) {
         return Promise.reject(new Error(`Model with ID ${id} not found`))
       }
-      
+
       mockModels[index] = {
         ...mockModels[index],
         ...model,
       }
-      return Promise.resolve({...mockModels[index]})
+      return Promise.resolve({ ...mockModels[index] })
     })
-    
-    mockModelService.deleteModel.mockImplementation((id: string) => {
+
+    mockModelService.delete.mockImplementation((id: string) => {
       const index = mockModels.findIndex(m => m.id === id)
       if (index === -1) {
         return Promise.reject(new Error(`Model with ID ${id} not found`))
@@ -172,36 +178,36 @@ describe('Models Component', () => {
       mockModels.splice(index, 1)
       return Promise.resolve()
     })
-    
-    mockModelService.getModelImplementations.mockImplementation((modelId: string) => {
+
+    mockImplementationsService.getAll.mockImplementation((modelId: string) => {
       const implementations = mockImplementations.filter(imp => imp.modelId === modelId)
       return Promise.resolve([...implementations])
     })
-    
-    mockModelService.createModelImplementation.mockImplementation((modelId: string, implementation: Omit<FrontendModelImplementation, 'id' | 'modelId'>) => {
+
+    mockImplementationsService.create.mockImplementation(( implementation: Omit<FrontendModelImplementation, 'id' | 'modelId'>,modelId: string) => {
       const newImpl: FrontendModelImplementation = {
         id: `impl-${Date.now()}`,
         modelId,
         ...implementation,
       }
       mockImplementations.push(newImpl)
-      return Promise.resolve({...newImpl})
+      return Promise.resolve({ ...newImpl })
     })
-    
-    mockModelService.updateModelImplementation.mockImplementation((id: string, implementation: Partial<FrontendModelImplementation>) => {
+
+    mockImplementationsService.update.mockImplementation((id: string, implementation: Partial<FrontendModelImplementation>) => {
       const index = mockImplementations.findIndex(imp => imp.id === id)
       if (index === -1) {
         return Promise.reject(new Error(`Implementation with ID ${id} not found`))
       }
-      
+
       mockImplementations[index] = {
         ...mockImplementations[index],
         ...implementation,
       }
-      return Promise.resolve({...mockImplementations[index]})
+      return Promise.resolve({ ...mockImplementations[index] })
     })
-    
-    mockModelService.deleteModelImplementation.mockImplementation((id: string) => {
+
+    mockImplementationsService.delete.mockImplementation((id: string) => {
       const index = mockImplementations.findIndex(imp => imp.id === id)
       if (index === -1) {
         return Promise.reject(new Error(`Implementation with ID ${id} not found`))
@@ -211,9 +217,9 @@ describe('Models Component', () => {
     })
 
     vi.clearAllMocks()
-    
+
     await renderWithRouter('/models')
-    await waitFor(() => expect(mockModelService.getModels).toHaveBeenCalled())
+    await waitFor(() => expect(mockModelService.getAll).toHaveBeenCalled())
   })
 
   afterEach(() => {
@@ -233,7 +239,7 @@ describe('Models Component', () => {
   it('should show modal title when adding a model', async () => {
     const addButton = screen.getByRole('button', { name: /添加模型/ })
     await userEvent.click(addButton)
-    
+
     expect(screen.getByRole('dialog')).toHaveTextContent('添加模型')
     expect(screen.getByLabelText('名称')).toBeInTheDocument()
     expect(screen.getByLabelText('描述')).toBeInTheDocument()
@@ -241,34 +247,34 @@ describe('Models Component', () => {
 
   it('should add new model successfully', async () => {
     await userEvent.click(screen.getByRole('button', { name: /添加模型/ }))
-    
+
     await userEvent.type(screen.getByLabelText('名称'), 'Test Model')
     await userEvent.type(screen.getByLabelText('描述'), 'Test model description')
-    
+
     // Update the capabilities selection interaction using the role
     const capabilitiesSelect = screen.getByRole('combobox', { name: '能力' })
     await userEvent.click(capabilitiesSelect)
     const textGenOption = screen.getByText('文本生成')
     await userEvent.click(textGenOption)
-    
+
     await userEvent.type(screen.getByLabelText('模型系列'), 'Test')
-    
+
     await userEvent.click(screen.getByRole('button', { name: 'OK' }))
-    
+
     await waitFor(() => {
-      expect(mockModelService.createModel).toHaveBeenCalledWith({
+      expect(mockModelService.create).toHaveBeenCalledWith({
         name: 'Test Model',
         description: 'Test model description',
         capabilities: ['text-generation'],
         family: 'Test',
       })
     })
-    
+
     // 验证是否调用getModels刷新列表
     await waitFor(() => {
-      expect(mockModelService.getModels).toHaveBeenCalledTimes(2)
+      expect(mockModelService.getAll).toHaveBeenCalledTimes(2)
     })
-    
+
     // 验证新模型是否显示在列表中
     await waitFor(() => {
       expect(screen.getByText('Test Model')).toBeInTheDocument()
@@ -277,47 +283,47 @@ describe('Models Component', () => {
 
   it('should cancel adding new model', async () => {
     const initialModelCount = screen.getAllByRole('row').length - 1 // Subtract header row
-    
+
     await userEvent.click(screen.getByRole('button', { name: /添加模型/ }))
     await userEvent.type(screen.getByLabelText('名称'), 'Test Cancel Model')
     await userEvent.type(screen.getByLabelText('描述'), 'Test cancel description')
-    
+
     await userEvent.click(screen.getByRole('button', { name: /Cancel/i }))
-    
+
     const newModelCount = screen.getAllByRole('row').length - 1
     expect(newModelCount).toBe(initialModelCount)
     expect(screen.queryByText('Test Cancel Model')).not.toBeInTheDocument()
-    expect(mockModelService.createModel).not.toHaveBeenCalled()
+    expect(mockModelService.create).not.toHaveBeenCalled()
   })
 
   it('should edit existing model', async () => {
     const editButtons = screen.getAllByRole('button', { name: /编辑/ })
     await userEvent.click(editButtons[0])
-    
+
     const nameInput = screen.getByLabelText('名称')
     await userEvent.clear(nameInput)
     await userEvent.type(nameInput, 'GPT-4o Modified')
-    
+
     const descInput = screen.getByLabelText('描述')
     await userEvent.clear(descInput)
     await userEvent.type(descInput, 'Modified description')
-    
+
     await userEvent.click(screen.getByRole('button', { name: 'OK' }))
-    
+
     await waitFor(() => {
-      expect(mockModelService.updateModel).toHaveBeenCalledWith('1', {
+      expect(mockModelService.update).toHaveBeenCalledWith('1', {
         name: 'GPT-4o Modified',
         description: 'Modified description',
         capabilities: ['text-generation', 'function-calling', 'vision'],
         family: 'GPT-4'
       })
     })
-    
+
     // 验证是否调用getModels刷新列表
     await waitFor(() => {
-      expect(mockModelService.getModels).toHaveBeenCalledTimes(2)
+      expect(mockModelService.getAll).toHaveBeenCalledTimes(2)
     })
-    
+
     // 使用更具体的选择器验证更新后的数据
     await waitFor(() => {
       // Find the row containing the updated model name
@@ -332,7 +338,7 @@ describe('Models Component', () => {
     const initialModelCount = screen.getAllByRole('row').length - 1
 
     expect(initialModelCount).toBe(2)
-    
+
     const deleteButtons = screen.getAllByRole('button', { name: /删除/ })
     await userEvent.click(deleteButtons[0])
 
@@ -340,14 +346,14 @@ describe('Models Component', () => {
     await userEvent.click(confirmButton)
 
     await waitFor(() => {
-      expect(mockModelService.deleteModel).toHaveBeenCalledWith('1')
+      expect(mockModelService.delete).toHaveBeenCalledWith('1')
     })
-    
+
     // 验证是否调用getModels刷新列表
     await waitFor(() => {
-      expect(mockModelService.getModels).toHaveBeenCalledTimes(2)
+      expect(mockModelService.getAll).toHaveBeenCalledTimes(2)
     })
-    
+
     await waitFor(() => {
       const newModelCount = screen.getAllByRole('row').length - 1
       expect(newModelCount).toBe(initialModelCount - 1)
@@ -361,9 +367,9 @@ describe('Models Component', () => {
       await userEvent.click(implementationButtons[0])
     })
     await waitFor(() => {
-      expect(mockModelService.getModelImplementations).toHaveBeenCalledWith('1')
+      expect(mockImplementationsService.getAll).toHaveBeenCalledWith('1')
     })
-    
+
     expect(screen.getByText(/的实现管理/)).toBeInTheDocument()
     expect(screen.getByText('gpt-4o')).toBeInTheDocument()
 
@@ -390,7 +396,7 @@ describe('Models Component', () => {
       expect(option).toBeInTheDocument()
       userEvent.click(option!)
     })
-    
+
     // Fill in other fields
     await act(async () => {
       await userEvent.type(screen.getByLabelText('提供商模型ID'), 'gpt-4o-test')
@@ -407,7 +413,7 @@ describe('Models Component', () => {
 
     // Verify the API call
     await waitFor(() => {
-      expect(mockModelService.createModelImplementation).toHaveBeenCalledWith('1', {
+      expect(mockImplementationsService.create).toHaveBeenCalledWith({
         providerId: '1', // OpenAI 的 ID
         modelId: '1',
         providerModelId: 'gpt-4o-test',
@@ -422,25 +428,25 @@ describe('Models Component', () => {
         },
         isAvailable: true,
         customParameters: undefined,
-      })
+      }, '1' // Model ID)
     })
   })
 
   it('should handle API error during model update', async () => {
     const editButtons = screen.getAllByRole('button', { name: /编辑/ })
     await userEvent.click(editButtons[0])
-    
-    mockModelService.updateModel.mockRejectedValueOnce(new Error('Update Failed'))
-    
+
+    mockModelService.update.mockRejectedValueOnce(new Error('Update Failed'))
+
     await userEvent.clear(screen.getByLabelText('名称'))
     await userEvent.type(screen.getByLabelText('名称'), 'GPT-4o Error Test')
-    
+
     await userEvent.click(screen.getByRole('button', { name: 'OK' }))
 
     await waitFor(() => {
       expect(screen.getByText(/保存失败/)).toBeInTheDocument()
     })
-    
+
     expect(screen.getByText('GPT-4o')).toBeInTheDocument()
     expect(screen.queryByText('GPT-4o Error Test')).not.toBeInTheDocument()
   })
@@ -448,37 +454,37 @@ describe('Models Component', () => {
   it('should validate required fields when adding model', async () => {
     await userEvent.click(screen.getByRole('button', { name: /添加模型/ }))
     await userEvent.click(screen.getByRole('button', { name: 'OK' }))
-    
+
     await waitFor(() => {
       expect(screen.getByText('请输入模型名称')).toBeInTheDocument()
       expect(screen.getByText('请选择模型能力')).toBeInTheDocument()
       expect(screen.getByText('请输入模型系列')).toBeInTheDocument()
     })
-    
-    expect(mockModelService.createModel).not.toHaveBeenCalled()
+
+    expect(mockModelService.create).not.toHaveBeenCalled()
   })
 
   it('should handle API error during model fetch', async () => {
-    mockModelService.getModels.mockRejectedValueOnce(new Error('API Error'))
-    
+    mockModelService.getAll.mockRejectedValueOnce(new Error('API Error'))
+
     await renderWithRouter('/models')
-    
+
     await waitFor(() => {
       expect(screen.getByText(/Failed to load models/)).toBeInTheDocument()
     })
-    
-    mockModelService.getModels.mockResolvedValueOnce([{
+
+    mockModelService.getAll.mockResolvedValueOnce([{
       id: '100',
       name: 'Test Model',
       description: 'Test Description',
       capabilities: ['text-generation'],
       family: 'Test'
     }])
-    
+
     await userEvent.click(screen.getByRole('button', { name: /重试/ }))
-    
-    expect(mockModelService.getModels).toHaveBeenCalledTimes(3)
-    
+
+    expect(mockModelService.getAll).toHaveBeenCalledTimes(3)
+
     await waitFor(() => {
       expect(screen.getByText('Test Model')).toBeInTheDocument()
     })
@@ -487,30 +493,30 @@ describe('Models Component', () => {
   it('should validate required fields when adding implementation', async () => {
     const implementationButtons = screen.getAllByRole('button', { name: /实现/ })
     await userEvent.click(implementationButtons[0])
-    
+
     await userEvent.click(screen.getByRole('button', { name: /添加实现/ }))
     await userEvent.click(screen.getByRole('button', { name: 'OK' }))
-    
+
     await waitFor(() => {
       expect(screen.getByText('请选择提供商')).toBeInTheDocument()
       expect(screen.getByText('请输入提供商模型ID')).toBeInTheDocument()
       expect(screen.getByText('请输入版本')).toBeInTheDocument()
     })
-    
-    expect(mockModelService.createModelImplementation).not.toHaveBeenCalled()
+
+    expect(mockImplementationsService.create).not.toHaveBeenCalled()
   })
 
   it('should cancel adding new implementation', async () => {
     const implementationButtons = screen.getAllByRole('button', { name: /实现/ })
     await userEvent.click(implementationButtons[0])
-    
+
     const initialImplCount = screen.getAllByRole('row').length - 1
-    
+
     await userEvent.click(screen.getByRole('button', { name: /添加实现/ }))
     await userEvent.type(screen.getByLabelText('提供商模型ID'), 'test-impl')
-    
+
     await userEvent.click(screen.getByRole('button', { name: /Cancel/i }))
-    
+
     const newImplCount = screen.getAllByRole('row').length - 1
     expect(newImplCount).toBe(initialImplCount)
     expect(screen.queryByText('test-impl')).not.toBeInTheDocument()
@@ -519,20 +525,20 @@ describe('Models Component', () => {
   it('should edit model implementation', async () => {
     const implementationButtons = screen.getAllByRole('button', { name: /实现/ })
     await userEvent.click(implementationButtons[0])
-    
+
     const editButtons = screen.getAllByRole('button', { name: /编辑/ })
     await userEvent.click(editButtons[0])
-    
+
     await userEvent.clear(screen.getByLabelText('版本'))
     await userEvent.type(screen.getByLabelText('版本'), '2024-03')
-    
+
     await userEvent.clear(screen.getByLabelText('上下文窗口大小'))
     await userEvent.type(screen.getByLabelText('上下文窗口大小'), '150000')
-    
+
     await userEvent.click(screen.getByRole('button', { name: 'OK' }))
-    
+
     await waitFor(() => {
-      expect(mockModelService.updateModelImplementation).toHaveBeenCalledWith('1', {
+      expect(mockImplementationsService.update).toHaveBeenCalledWith('1', {
         version: '2024-03',
         contextWindow: "150000",
         providerId: expect.any(String),
@@ -545,7 +551,8 @@ describe('Models Component', () => {
           notes: undefined,
         },
         isAvailable: true,
-      })
+      }, '1' // Model ID
+      )
     })
   })
 
@@ -553,15 +560,15 @@ describe('Models Component', () => {
     const implementationButtons = screen.getAllByRole('button', { name: /实现/ })
     await userEvent.click(implementationButtons[0])
     const initialImplCount = screen.getAllByRole('row').filter(row => row.hasAttribute('data-row-key')).length
-    
+
     const deleteButtons = screen.getAllByRole('button', { name: /删除/ })
     await userEvent.click(deleteButtons[0])
-    
+
     const confirmButton = screen.getByRole('button', { name: '是' })
     await userEvent.click(confirmButton)
-    
+
     await waitFor(() => {
-      expect(mockModelService.deleteModelImplementation).toHaveBeenCalledWith('1')
+      expect(mockImplementationsService.delete).toHaveBeenCalledWith('1', '1')
     })
     await waitFor(() => {
       // FIXME: 获取 非 placeholder 以及 header 的行数
@@ -574,9 +581,9 @@ describe('Models Component', () => {
   it('should be able to return to models list', async () => {
     const implementationButtons = screen.getAllByRole('button', { name: /实现/ })
     await userEvent.click(implementationButtons[0])
-    
+
     await userEvent.click(screen.getByRole('button', { name: /返 回/ }))
-    
+
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: '模型管理' })).toBeInTheDocument()
       expect(screen.queryByText(/的实现管理/)).not.toBeInTheDocument()
@@ -586,36 +593,36 @@ describe('Models Component', () => {
   it('should handle API error during implementation update', async () => {
     const implementationButtons = screen.getAllByRole('button', { name: /实现/ })
     await userEvent.click(implementationButtons[0])
-    
+
     const editButtons = screen.getAllByRole('button', { name: /编辑/ })
     await userEvent.click(editButtons[0])
-    
-    mockModelService.updateModelImplementation.mockRejectedValueOnce(new Error('Update Failed'))
-    
+
+    mockImplementationsService.update.mockRejectedValueOnce(new Error('Update Failed'))
+
     await userEvent.clear(screen.getByLabelText('版本'))
     await userEvent.type(screen.getByLabelText('版本'), '2024-03-error')
-    
+
     await userEvent.click(screen.getByRole('button', { name: 'OK' }))
-    
+
     await waitFor(() => {
       expect(screen.getByText(/保存失败/)).toBeInTheDocument()
     })
-    
+
     expect(screen.getByText('2023-05')).toBeInTheDocument()
     expect(screen.queryByText('2024-03-error')).not.toBeInTheDocument()
   })
 
   it('should handle API error during implementation fetch', async () => {
-    mockModelService.getModelImplementations.mockRejectedValueOnce(new Error('API Error'))
-    
+    mockImplementationsService.getAll.mockRejectedValueOnce(new Error('API Error'))
+
     const implementationButtons = screen.getAllByRole('button', { name: /实现/ })
     await userEvent.click(implementationButtons[0])
-    
+
     await waitFor(() => {
       expect(screen.getByText(/Failed to load model implementations/)).toBeInTheDocument()
     })
-    
-    mockModelService.getModelImplementations.mockResolvedValueOnce([{
+
+    mockImplementationsService.getAll.mockResolvedValueOnce([{
       id: '100',
       providerId: '1',
       modelId: '1',
@@ -630,9 +637,9 @@ describe('Models Component', () => {
       },
       isAvailable: true,
     }])
-    
+
     await userEvent.click(screen.getByRole('button', { name: /重试/ }))
-    
+
     await waitFor(() => {
       expect(screen.getByText('test-model')).toBeInTheDocument()
     })

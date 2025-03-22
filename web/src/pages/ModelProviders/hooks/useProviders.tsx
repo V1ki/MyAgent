@@ -1,4 +1,3 @@
-// filepath: /Users/v1ki/Documents/projs/work/my_agent/web/src/pages/ModelProviders/hooks/useProviders.tsx
 import { useState, useEffect, useCallback } from 'react';
 import { message } from 'antd';
 import { providerService } from '../../../services/api';
@@ -35,8 +34,8 @@ export const useProviders = (): UseProvidersReturn => {
     try {
       setLoading(true);
       setError(null);
-      const data = await providerService.getProviders();
-      setProviders(data.map(toFrontendProvider));
+      const data = await providerService.getAll();
+      setProviders(data);
       return;
     } catch (err) {
       console.error('Failed to fetch providers:', err);
@@ -51,8 +50,7 @@ export const useProviders = (): UseProvidersReturn => {
     try {
       setLoading(true);
       setError(null);
-      const data = await providerService.getProvider(id);
-      const frontendProvider = toFrontendProvider(data);
+      const frontendProvider = await providerService.getOne(id);
       
       // Update providers list with the fetched provider
       setProviders(prev => 
@@ -103,9 +101,9 @@ export const useProviders = (): UseProvidersReturn => {
   ) => {
     try {
       setLoading(true);
-      await providerService.updateProvider(id, {
+      await providerService.update(id, {
         name,
-        base_url: baseUrl,
+        baseUrl: baseUrl,
         description
       });
       
@@ -124,7 +122,7 @@ export const useProviders = (): UseProvidersReturn => {
   const deleteProvider = useCallback(async (id: string) => {
     try {
       setLoading(true);
-      await providerService.deleteProvider(id);
+      await providerService.delete(id);
       setProviders(providers.filter(provider => provider.id !== id));
       message.success('提供商删除成功');
       return true;

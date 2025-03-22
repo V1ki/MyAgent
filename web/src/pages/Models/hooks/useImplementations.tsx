@@ -13,7 +13,7 @@ export const useImplementations = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await modelService.getModelImplementations(modelId);
+      const data = await modelService.implementations.getAll(modelId);
       setImplementations(data);
       return data;
     } catch (err) {
@@ -29,7 +29,7 @@ export const useImplementations = () => {
   const createImplementation = async (modelId: string, values: any) => {
     try {
       setLoading(true);
-      await modelService.createModelImplementation(modelId, {
+      await modelService.implementations.create({
         providerId: values.providerId,
         modelId: modelId,
         providerModelId: values.providerModelId,
@@ -38,7 +38,7 @@ export const useImplementations = () => {
         pricingInfo: values.pricingInfo,
         isAvailable: values.isAvailable,
         customParameters: values.customParameters,
-      });
+      }, modelId);
       message.success('Model implementation successfully added');
       await fetchModelImplementations(modelId);
       return true;
@@ -55,7 +55,7 @@ export const useImplementations = () => {
   const updateImplementation = async (implementationId: string, values: any, modelId: string) => {
     try {
       setLoading(true);
-      await modelService.updateModelImplementation(implementationId, values);
+      await modelService.implementations.update(implementationId, values, modelId);
       message.success('Model implementation successfully updated');
       await fetchModelImplementations(modelId);
       return true;
@@ -72,7 +72,7 @@ export const useImplementations = () => {
   const deleteImplementation = async (id: string, modelId: string) => {
     try {
       setLoading(true);
-      await modelService.deleteModelImplementation(id);
+      await modelService.implementations.delete(id, modelId);
       message.success('Model implementation successfully deleted');
       await fetchModelImplementations(modelId);
       return true;

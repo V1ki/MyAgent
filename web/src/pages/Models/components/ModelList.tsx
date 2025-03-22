@@ -61,10 +61,7 @@ const ModelList: React.FC<ModelListProps> = ({
     {
       title: '实现数量',
       key: 'implementationsCount',
-      render: (_: any, record: FrontendModel) => {
-        const modelImplementations = implementations.filter(imp => imp.modelId === record.id);
-        return modelImplementations.length;
-      },
+      dataIndex: 'implementationsCount',
     },
     {
       title: '操作',

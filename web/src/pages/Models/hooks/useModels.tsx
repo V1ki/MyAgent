@@ -13,7 +13,7 @@ export const useModels = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await modelService.getModels();
+      const data = await modelService.getAll();
       setModels(data);
     } catch (err) {
       console.error('Failed to fetch models:', err);
@@ -27,7 +27,7 @@ export const useModels = () => {
   const createModel = async (values: any) => {
     try {
       setLoading(true);
-      await modelService.createModel(values);
+      await modelService.create(values);
       message.success('Model successfully added');
       await fetchModels();
       return true;
@@ -44,7 +44,7 @@ export const useModels = () => {
   const updateModel = async (id: string, values: any) => {
     try {
       setLoading(true);
-      await modelService.updateModel(id, values);
+      await modelService.update(id, values);
       message.success('Model successfully updated');
       await fetchModels();
       return true;
@@ -61,7 +61,7 @@ export const useModels = () => {
   const deleteModel = async (id: string) => {
     try {
       setLoading(true);
-      await modelService.deleteModel(id);
+      await modelService.delete(id);
       message.success('Model successfully deleted');
       await fetchModels();
       return true;

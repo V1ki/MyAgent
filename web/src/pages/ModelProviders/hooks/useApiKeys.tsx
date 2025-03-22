@@ -1,4 +1,3 @@
-// filepath: /Users/v1ki/Documents/projs/work/my_agent/web/src/pages/ModelProviders/hooks/useApiKeys.tsx
 import { useState, useCallback } from 'react';
 import { message } from 'antd';
 import { apiKeyService } from '../../../services/api';
@@ -6,8 +5,8 @@ import { apiKeyService } from '../../../services/api';
 interface UseApiKeysReturn {
   loading: boolean;
   createApiKey: (providerId: string, alias: string, key: string) => Promise<boolean>;
-  updateApiKey: (keyId: string, alias: string, key?: string) => Promise<boolean>;
-  deleteApiKey: (keyId: string) => Promise<boolean>;
+  updateApiKey: (providerId: string, keyId: string, alias: string, key?: string) => Promise<boolean>;
+  deleteApiKey: (providerId: string, keyId: string) => Promise<boolean>;
 }
 
 export const useApiKeys = (): UseApiKeysReturn => {
@@ -16,10 +15,10 @@ export const useApiKeys = (): UseApiKeysReturn => {
   const createApiKey = useCallback(async (providerId: string, alias: string, key: string) => {
     try {
       setLoading(true);
-      await apiKeyService.createApiKey(providerId, {
+      await apiKeyService.create({
         alias,
         key
-      });
+      },providerId);
       
       message.success('密钥添加成功');
       return true;
@@ -32,13 +31,13 @@ export const useApiKeys = (): UseApiKeysReturn => {
     }
   }, []);
 
-  const updateApiKey = useCallback(async (keyId: string, alias: string, key?: string) => {
+  const updateApiKey = useCallback(async (providerId: string, keyId: string, alias: string, key?: string) => {
     try {
       setLoading(true);
-      await apiKeyService.updateApiKey(keyId, {
+      await apiKeyService.update(keyId, {
         alias,
         key
-      });
+      }, providerId);
       
       message.success('密钥更新成功');
       return true;
@@ -51,10 +50,10 @@ export const useApiKeys = (): UseApiKeysReturn => {
     }
   }, []);
 
-  const deleteApiKey = useCallback(async (keyId: string) => {
+  const deleteApiKey = useCallback(async (providerId: string, keyId: string) => {
     try {
       setLoading(true);
-      await apiKeyService.deleteApiKey(keyId);
+      await apiKeyService.delete(keyId, providerId);
       
       message.success('密钥删除成功');
       return true;

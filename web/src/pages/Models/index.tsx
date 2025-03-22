@@ -57,7 +57,7 @@ const Models: React.FC = () => {
   // Fetch providers
   const fetchProviders = async () => {
     try {
-      const data = await providerService.getProviders();
+      const data = await providerService.getAll();
       setProviders(data);
     } catch (err) {
       console.error('Failed to fetch providers:', err);
@@ -71,7 +71,7 @@ const Models: React.FC = () => {
     setIsModelModalVisible(true);
   };
 
-  const handleEditModel = (model: FrontendModel) => {
+  const handleEditModel = (model: Model) => {
     setEditingModel(model);
     setIsModelModalVisible(true);
   };
@@ -91,7 +91,7 @@ const Models: React.FC = () => {
   };
 
   // Implementation management
-  const handleManageImplementations = async (model: FrontendModel) => {
+  const handleManageImplementations = async (model: Model) => {
     setCurrentModel(model);
     await fetchModelImplementations(model.id);
   };
@@ -113,7 +113,7 @@ const Models: React.FC = () => {
 
   const handleImplementationFormSubmit = async (values: any) => {
     let success = false;
-    
+    if (!currentModel) return;
     if (editingImplementation) {
       success = await updateImplementation(editingImplementation.id, values, currentModel.id);
     } else if (currentModel) {

@@ -34,7 +34,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
     {
       title: 'API密钥数量',
       key: 'apiKeysCount',
-      render: (_, record: FrontendModelProvider) => record.apiKeysCount || record.apiKeys.length,
+      dataIndex: 'apiKeysCount',
     },
     {
       title: '接口地址',

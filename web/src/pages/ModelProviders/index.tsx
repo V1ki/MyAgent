@@ -80,9 +80,9 @@ const ModelProviders: React.FC = () => {
       }
     } else {
       // Create new provider
-      const initialKey = values.initialKeyAlias && values.initialKey
-        ? { alias: values.initialKeyAlias, key: values.initialKey }
-        : undefined;
+      const initialKey = (values.initialKeyAlias || values.initialKey)
+      ? { alias: values.initialKeyAlias ?? "Default" , key: values.initialKey ?? "" }
+      : undefined;
       
       const success = await createProvider(
         values.name,
@@ -124,6 +124,7 @@ const ModelProviders: React.FC = () => {
     if (editingKey) {
       // Update existing key
       const success = await updateApiKey(
+        currentProvider.id,
         editingKey.id,
         values.alias,
         values.key
@@ -162,7 +163,7 @@ const ModelProviders: React.FC = () => {
   const handleDeleteKey = async (keyId: string) => {
     if (!currentProvider) return;
 
-    const success = await deleteApiKey(keyId);
+    const success = await deleteApiKey(currentProvider.id, keyId);
     if (success && currentProvider) {
       // Refresh provider data to get updated keys list
       const updatedProvider = await fetchProvider(currentProvider.id);
