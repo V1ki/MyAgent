@@ -9,16 +9,33 @@ import {
   ApiOutlined,
   AppstoreOutlined,
 } from '@ant-design/icons';
-import { Link, Outlet, useNavigate } from '@tanstack/react-router';
+import { Link, Outlet, useNavigate, useRouterState } from '@tanstack/react-router';
 
 const { Header, Sider, Content } = Layout;
 
 const MainLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
+  const routerState = useRouterState();
+  const currentPath = routerState.location.pathname;
+  
   const {
     token: { colorBgContainer },
   } = theme.useToken();
+
+  // 获取当前选中的菜单项
+  const getSelectedKeys = () => {
+    // 对于子菜单项，如 /models，需要返回精确的路径
+    return [currentPath];
+  };
+  
+  // 获取应该展开的子菜单
+  const getOpenKeys = () => {
+    if (currentPath === '/models' || currentPath === '/model-providers') {
+      return ['models-submenu'];
+    }
+    return [];
+  };
 
   const menuItems = [
     {
@@ -62,8 +79,8 @@ const MainLayout: React.FC = () => {
         <Menu
           theme="dark"
           mode="inline"
-          defaultSelectedKeys={['/']}
-          defaultOpenKeys={['models-submenu']}
+          selectedKeys={getSelectedKeys()}
+          openKeys={getOpenKeys()}
           items={menuItems}
           onSelect={({ key }) => navigate({ to: key as string })}
         />
