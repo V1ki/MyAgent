@@ -54,14 +54,14 @@ const MainLayout: React.FC = () => {
       label: '模型管理',
       children: [
         {
-          key: '/models',
-          icon: <AppstoreOutlined />,
-          label: '模型',
-        },
-        {
           key: '/model-providers',
           icon: <ApiOutlined />,
           label: '模型提供商',
+        },
+        {
+          key: '/models',
+          icon: <AppstoreOutlined />,
+          label: '模型',
         },
       ],
     },
