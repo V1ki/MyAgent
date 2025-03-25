@@ -128,7 +128,7 @@ export const providerService = {
 
   updateApiKeysOrder: async (providerId: string, orders: Record<string, number>): Promise<boolean> => {
     try {
-      await fetchAPI(`/providers/${providerId}/keys/order`, {
+      await fetchAPI(`/providers/${providerId}/orders`, {
         method: 'PUT',
         body: JSON.stringify({ orders })
       });
@@ -163,6 +163,20 @@ export const modelService = {
     ...createApiService<ModelImplementation, FrontendModelImplementation>({
       basePath: '/models',  
       subResourcePath: '/implementations'
-    })
+    }),
+    
+    // Update implementations order
+    updateOrder: async (modelId: string, orders: Record<string, number>): Promise<boolean> => {
+      try {
+        await fetchAPI(`/models/${modelId}/orders`, {
+          method: 'PUT',
+          body: JSON.stringify({ orders })
+        });
+        return true;
+      } catch (error) {
+        console.error('Failed to update implementation orders:', error);
+        return false;
+      }
+    }
   }
 };

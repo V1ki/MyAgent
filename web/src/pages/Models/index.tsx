@@ -194,6 +194,9 @@ const Models: React.FC = () => {
               loading={implLoading}
               onEdit={handleEditImplementation}
               onDelete={(id) => deleteImplementation(id, currentModel.id)}
+              onMoveImplementation={async () => {
+                await fetchModelImplementations(currentModel.id);
+              }}
             />
           )}
         </div>

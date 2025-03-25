@@ -117,6 +117,7 @@ export interface FrontendModelImplementation {
   pricingInfo?: FrontendPricingInfo;
   isAvailable: boolean;
   customParameters?: Record<string, any>;
+  sortOrder: number;
 }
 
 export interface FrontendPricingInfo {

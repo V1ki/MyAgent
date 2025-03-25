@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Table, Button, Space, Popconfirm, Tag, Tooltip } from 'antd';
-import { EditOutlined, DeleteOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, InfoCircleOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { FrontendModelImplementation, Model, FrontendModelProvider } from '../../../types/api';
+import { modelService } from '../../../services/api';
 
 interface ImplementationListProps {
   implementations: FrontendModelImplementation[];
@@ -10,6 +11,7 @@ interface ImplementationListProps {
   loading: boolean;
   onEdit: (implementation: FrontendModelImplementation) => void;
   onDelete: (id: string) => void;
+  onMoveImplementation: () => Promise<void>;
 }
 
 const ImplementationList: React.FC<ImplementationListProps> = ({
@@ -18,13 +20,69 @@ const ImplementationList: React.FC<ImplementationListProps> = ({
   model,
   loading,
   onEdit,
-  onDelete
+  onDelete,
+  onMoveImplementation
 }) => {
-  // Filter implementations for the current model
-  const modelImplementations = implementations.filter(imp => imp.modelId === model.id);
+  // Sort implementations by sortOrder
+  const sortedImplementations = useMemo(() => {
+    return implementations
+      .filter(imp => imp.modelId === model.id)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }, [implementations, model.id]);
+
+  const handleMove = async (record: FrontendModelImplementation, moveUp: boolean) => {
+    const currentIndex = sortedImplementations.findIndex(impl => impl.id === record.id);
+    const newIndex = moveUp ? currentIndex - 1 : currentIndex + 1;
+    
+    if (newIndex < 0 || newIndex >= sortedImplementations.length) return;
+    
+    // Create new orders map
+    const newOrders = sortedImplementations.reduce<Record<string, number>>((acc, impl, index) => {
+      if (index === currentIndex) {
+        acc[impl.id] = newIndex;
+      } else if (index === newIndex) {
+        acc[impl.id] = currentIndex;
+      } else {
+        acc[impl.id] = index;
+      }
+      return acc;
+    }, {});
+
+    // Update orders in backend
+
+    const success = await modelService.implementations.updateOrder(model.id, newOrders);
+    if(success) {
+      await onMoveImplementation();
+    }
+    // The parent component will handle the refresh
+  };
 
   // Implementation table columns
   const columns = [
+    {
+      title: '排序',
+      key: 'sort',
+      width: 100,
+      render: (_: unknown, record: FrontendModelImplementation) => {
+        const index = sortedImplementations.findIndex(impl => impl.id === record.id);
+        return (
+          <Space>
+            <Button
+              type="text"
+              icon={<ArrowUpOutlined />}
+              disabled={index === 0}
+              onClick={() => handleMove(record, true)}
+            />
+            <Button
+              type="text"
+              icon={<ArrowDownOutlined />}
+              disabled={index === sortedImplementations.length - 1}
+              onClick={() => handleMove(record, false)}
+            />
+          </Space>
+        );
+      },
+    },
     {
       title: '提供商',
       key: 'provider',
@@ -130,7 +188,7 @@ const ImplementationList: React.FC<ImplementationListProps> = ({
       <div className="bg-white p-4 rounded">
         <Table
           columns={columns}
-          dataSource={modelImplementations}
+          dataSource={sortedImplementations}
           rowKey="id"
           pagination={false}
           loading={loading}
