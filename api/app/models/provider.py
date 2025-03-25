@@ -54,6 +54,7 @@ class ApiKey(Base):
     provider_id = Column(UUID(as_uuid=True), ForeignKey("model_providers.id"), nullable=False)
     alias = Column(String, nullable=False)
     key = Column(String, nullable=False)
+    sort_order = Column(Integer, nullable=True, default=0)  # Add sort order field
     
     # Relationship back to provider
     provider = relationship("ModelProvider", back_populates="api_keys")

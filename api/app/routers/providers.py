@@ -4,9 +4,10 @@ from typing import List
 from uuid import UUID
 
 from app.db.database import get_db
-from app.models.schemas import ModelProviderCreate, ModelProviderRead, ModelProviderDetailedRead, ModelProviderUpdate, ModelProviderListRead
+from app.models.schemas import ModelProviderCreate, ModelProviderRead, ModelProviderDetailedRead, ModelProviderUpdate, ModelProviderListRead, ApiKeyOrderUpdate
 from app.services.provider_service import ProviderService, ApiKeyService
 from app.services import free_quota_service
+from app.models.provider import ApiKey
 
 router = APIRouter(prefix="/providers", tags=["providers"])
 
@@ -52,10 +53,14 @@ def get_provider(
             "id": key.id,
             "provider_id": key.provider_id,
             "alias": key.alias,
-            "key_preview": ApiKeyService.mask_api_key(key.key)
+            "key_preview": ApiKeyService.mask_api_key(key.key),
+            "sort_order": key.sort_order
         }
         for key in provider.api_keys
     ]
+    # Sort API keys by sort_order
+    response.api_keys = sorted(response.api_keys, key=lambda x: x["sort_order"])
+    
     response.free_quota = free_quota
     
     return response
@@ -125,3 +130,40 @@ def delete_provider(
         )
     
     return None  # 204 No Content response doesn't include a body
+
+@router.put("/{provider_id}/keys/order", status_code=status.HTTP_200_OK)
+def update_provider_api_keys_order(
+    provider_id: UUID,
+    order_update: ApiKeyOrderUpdate,
+    db: Session = Depends(get_db)
+):
+    """Update the sort order of multiple API keys at once."""
+    # Check if the provider exists
+    provider = ProviderService.get_provider(db, provider_id)
+    if provider is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Provider with ID {provider_id} not found"
+        )
+    
+    # Verify all API keys belong to this provider
+    api_keys = db.query(ApiKey).filter(
+        ApiKey.id.in_(order_update.orders.keys()),
+        ApiKey.provider_id == provider_id
+    ).all()
+    
+    if len(api_keys) != len(order_update.orders):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Some API keys were not found or do not belong to this provider"
+        )
+    
+    # Update all API keys at once
+    success = ApiKeyService.bulk_update_api_key_order(db, order_update.orders)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update API key orders"
+        )
+    
+    return {"message": "API key orders updated successfully"}

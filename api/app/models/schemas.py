@@ -9,6 +9,7 @@ from app.models.provider import FreeQuotaType, ResetPeriod
 class ApiKeyBase(BaseModel):
     alias: str = Field(..., description="A human-readable alias for the API key")
     key: str = Field(..., description="The actual API key value")
+    sort_order: int = Field(0, description="Sort order for drag-and-drop functionality")
     
     @field_validator('key')
     def validate_key_format(cls, v):
@@ -25,6 +26,7 @@ class ApiKeyCreate(ApiKeyBase):
 class ApiKeyUpdate(BaseModel):
     alias: Optional[str] = None
     key: Optional[str] = None
+    sort_order: Optional[int] = None
 
 class ApiKeyRead(ApiKeyBase):
     id: UUID
@@ -38,8 +40,13 @@ class ApiKeyReadWithMaskedKey(BaseModel):
     provider_id: UUID
     alias: str
     key_preview: str  = None # This will be a masked version of the key
+    sort_order: int = 0
     
     model_config = ConfigDict(from_attributes=True)
+
+
+class ApiKeyOrderUpdate(BaseModel):
+    orders: dict[UUID, int] = Field(..., description="Dictionary of API key IDs and their new sort orders")
 
 
 # Model Provider schemas
