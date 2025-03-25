@@ -45,7 +45,7 @@ class ApiKeyReadWithMaskedKey(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class ApiKeyOrderUpdate(BaseModel):
+class OrderUpdate(BaseModel):
     orders: dict[UUID, int] = Field(..., description="Dictionary of API key IDs and their new sort orders")
 
 

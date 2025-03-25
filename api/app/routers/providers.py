@@ -4,7 +4,7 @@ from typing import List
 from uuid import UUID
 
 from app.db.database import get_db
-from app.models.schemas import ModelProviderCreate, ModelProviderRead, ModelProviderDetailedRead, ModelProviderUpdate, ModelProviderListRead, ApiKeyOrderUpdate
+from app.models.schemas import ModelProviderCreate, ModelProviderRead, ModelProviderDetailedRead, ModelProviderUpdate, ModelProviderListRead, OrderUpdate
 from app.services.provider_service import ProviderService, ApiKeyService
 from app.services import free_quota_service
 from app.models.provider import ApiKey
@@ -131,10 +131,10 @@ def delete_provider(
     
     return None  # 204 No Content response doesn't include a body
 
-@router.put("/{provider_id}/keys/order", status_code=status.HTTP_200_OK)
+@router.put("/{provider_id}/orders", status_code=status.HTTP_200_OK)
 def update_provider_api_keys_order(
     provider_id: UUID,
-    order_update: ApiKeyOrderUpdate,
+    order_update: OrderUpdate,
     db: Session = Depends(get_db)
 ):
     """Update the sort order of multiple API keys at once."""

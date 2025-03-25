@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict
 from uuid import UUID
 
 from app.models.provider import Model, ModelImplementation
@@ -75,11 +75,18 @@ class ModelImplementationService:
     @staticmethod
     def get_model_implementations(db: Session, model_id: str) -> List[ModelImplementation]:
         """Get all implementations for a specific model."""
-        return db.query(ModelImplementation).filter(ModelImplementation.model_id == model_id).all()
+        return db.query(ModelImplementation).filter(ModelImplementation.model_id == model_id).order_by(ModelImplementation.sort_order).all()
     
     @staticmethod
     def create_implementation(db: Session, implementation: ModelImplementationCreate) -> ModelImplementation:
         """Create a new model implementation."""
+        # Get the highest sort_order for the model
+        highest_sort = db.query(ModelImplementation).filter(
+            ModelImplementation.model_id == implementation.model_id
+        ).order_by(ModelImplementation.sort_order.desc()).first()
+        
+        next_sort_order = (highest_sort.sort_order + 1) if highest_sort else 0
+        
         db_implementation = ModelImplementation(
             provider_id=implementation.provider_id,
             model_id=implementation.model_id,
@@ -88,12 +95,32 @@ class ModelImplementationService:
             context_window=implementation.context_window,
             pricing_info=implementation.pricing_info,
             is_available=implementation.is_available,
-            custom_parameters=implementation.custom_parameters
+            custom_parameters=implementation.custom_parameters,
+            sort_order=next_sort_order
         )
         db.add(db_implementation)
         db.commit()
         db.refresh(db_implementation)
         return db_implementation
+    
+    @staticmethod
+    def update_implementation_orders(db: Session, orders: Dict[str, int]) -> bool:
+        """Update sort orders for multiple implementations."""
+        try:
+            for impl_id, order in orders.items():
+                implementation = db.query(ModelImplementation).filter(
+                    ModelImplementation.id == impl_id
+                ).first()
+                
+                if implementation:
+                    implementation.sort_order = order
+            
+            db.commit()
+            return True
+        except Exception as e:
+            db.rollback()
+            print(f"Error updating implementation orders: {e}")
+            return False
     
     @staticmethod
     def update_implementation(

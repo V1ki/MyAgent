@@ -6,7 +6,8 @@ from uuid import UUID
 from app.db.database import get_db
 from app.models.schemas import (
     ModelCreate, ModelRead, ModelDetailedRead, ModelUpdate, ModelListRead, 
-    ModelImplementationCreate, ModelImplementationRead, ModelImplementationUpdate
+    ModelImplementationCreate, ModelImplementationRead, ModelImplementationUpdate,
+    OrderUpdate
 )
 from app.services.model_service import ModelService, ModelImplementationService
 
@@ -199,3 +200,36 @@ def delete_implementation(
         )
     
     return None  # 204 No Content response doesn't include a body
+
+@router.put("/{model_id}/orders", status_code=status.HTTP_200_OK)
+def update_implementation_orders(
+    model_id: UUID,
+    orders: OrderUpdate,
+    db: Session = Depends(get_db)
+):
+    """Update sort orders for model implementations."""
+    # Verify model exists
+    model = ModelService.get_model(db, model_id)
+    if model is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Model with ID {model_id} not found"
+        )
+    
+    # Verify all implementations belong to this model
+    implementations = ModelImplementationService.get_model_implementations(db, str(model_id))
+    impl_ids = {impl.id for impl in implementations}
+    if not all(impl_id in impl_ids for impl_id in orders.orders.keys()):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="All implementation IDs must belong to the specified model"
+        )
+    
+    success = ModelImplementationService.update_implementation_orders(db, orders.orders)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update implementation orders"
+        )
+    
+    return None
