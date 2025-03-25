@@ -6,6 +6,7 @@ from uuid import UUID
 from app.db.database import get_db
 from app.models.schemas import ModelProviderCreate, ModelProviderRead, ModelProviderDetailedRead, ModelProviderUpdate, ModelProviderListRead
 from app.services.provider_service import ProviderService, ApiKeyService
+from app.services import free_quota_service
 
 router = APIRouter(prefix="/providers", tags=["providers"])
 
@@ -32,13 +33,16 @@ def get_provider(
     provider_id: UUID,
     db: Session = Depends(get_db)
 ):
-    """Get a specific model provider by ID, including API keys."""
+    """Get a specific model provider by ID, including API keys and free quotas."""
     provider = ProviderService.get_provider(db, provider_id)
     if provider is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Provider with ID {provider_id} not found"
         )
+    
+    # Get free quotas for this provider
+    free_quota = free_quota_service.get_free_quotas(db, provider_id)
     
     # Create response with masked API keys
     response = ModelProviderDetailedRead.model_validate(provider)
@@ -52,6 +56,7 @@ def get_provider(
         }
         for key in provider.api_keys
     ]
+    response.free_quota = free_quota
     
     return response
 

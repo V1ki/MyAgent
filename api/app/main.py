@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.routers import providers, api_keys, models
+from app.routers import providers, api_keys, models, free_quotas
 from app.db.database import init_pgvector, SessionLocal
 from app.db.init_data import initialize_database
 
@@ -44,6 +44,7 @@ app.router.lifespan_context = lifespan
 app.include_router(providers.router)
 app.include_router(api_keys.router)
 app.include_router(models.router)
+app.include_router(free_quotas.router)
 
 @app.get("/")
 async def root():

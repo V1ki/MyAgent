@@ -3,6 +3,8 @@ from typing import List, Optional, Dict, Any, Union
 from uuid import UUID
 from datetime import datetime
 
+from app.models.provider import FreeQuotaType, ResetPeriod
+
 # API Key schemas
 class ApiKeyBase(BaseModel):
     alias: str = Field(..., description="A human-readable alias for the API key")
@@ -45,6 +47,8 @@ class ModelProviderBase(BaseModel):
     name: str = Field(..., description="Name of the model provider")
     base_url: str = Field(..., description="Base URL for the provider's API")
     description: Optional[str] = Field(None, max_length=200, description="Optional description")
+    free_quota_type: Optional[FreeQuotaType] = None
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ModelProviderCreate(ModelProviderBase):
@@ -55,6 +59,7 @@ class ModelProviderUpdate(BaseModel):
     name: Optional[str] = None
     base_url: Optional[str] = None
     description: Optional[str] = None
+    free_quota_type: Optional[FreeQuotaType] = None
 
 
 class ModelProviderRead(ModelProviderBase):
@@ -70,6 +75,7 @@ class ModelProviderListRead(ModelProviderRead):
 class ModelProviderDetailedRead(ModelProviderRead):
     api_keys: List[ApiKeyReadWithMaskedKey] = []
     api_keys_count: int = 0
+    free_quota: Optional['FreeQuota'] = None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -135,6 +141,43 @@ class ModelDetailedRead(ModelRead):
 
 class ModelListRead(ModelRead):
     implementations_count: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# Free Quota Schemas
+class FreeQuotaBase(BaseModel):
+    model_implementation_id: Optional[UUID] = None
+    amount: float = Field(..., gt=0, description="Amount of the free quota (money or tokens)")
+    reset_period: ResetPeriod = Field(default=ResetPeriod.NEVER, description="Reset period for the quota")
+
+class FreeQuotaCreate(FreeQuotaBase):
+    pass
+
+class FreeQuotaUpdate(BaseModel):
+    model_implementation_id: Optional[UUID] = None
+    amount: Optional[float] = Field(None, gt=0)
+    reset_period: Optional[ResetPeriod] = None
+
+class FreeQuota(FreeQuotaBase):
+    id: UUID
+    provider_id: UUID
+
+    model_config = ConfigDict(from_attributes=True)
+
+class FreeQuotaUsageBase(BaseModel):
+    used_amount: float = Field(default=0, ge=0)
+    last_reset_date: Optional[datetime] = None
+    next_reset_date: Optional[datetime] = None
+
+class FreeQuotaUsageCreate(FreeQuotaUsageBase):
+    free_quota_id: UUID
+    api_key_id: UUID
+
+class FreeQuotaUsage(FreeQuotaUsageBase):
+    id: UUID
+    free_quota_id: UUID
+    api_key_id: UUID
 
     model_config = ConfigDict(from_attributes=True)
 

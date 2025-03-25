@@ -24,7 +24,8 @@ class ProviderService:
         db_provider = ModelProvider(
             name=provider.name,
             base_url=provider.base_url,
-            description=provider.description
+            description=provider.description,
+            free_quota_type=provider.free_quota_type,
         )
         db.add(db_provider)
         db.commit()
