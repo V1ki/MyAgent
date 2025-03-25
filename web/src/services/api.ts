@@ -124,6 +124,19 @@ export const providerService = {
       method: 'POST',
       body: JSON.stringify(payload)
     });
+  },
+
+  updateApiKeysOrder: async (providerId: string, orders: Record<string, number>): Promise<boolean> => {
+    try {
+      await fetchAPI(`/providers/${providerId}/keys/order`, {
+        method: 'PUT',
+        body: JSON.stringify({ orders })
+      });
+      return true;
+    } catch (error) {
+      console.error('Failed to update API key orders:', error);
+      return false;
+    }
   }
 };
 

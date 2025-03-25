@@ -5,6 +5,7 @@ export interface ApiKey {
   alias: string;
   key_preview?: string;
   key?: string; // Used only when creating/updating
+  sort_order: number;
 }
 
 // Free Quota types
@@ -157,6 +158,7 @@ export interface FrontendApiKey {
   id: string;
   alias: string;
   key: string;
+  sort_order: number;
 }
 
 // Frontend interfaces for Free Quota

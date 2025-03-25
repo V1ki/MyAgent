@@ -214,6 +214,8 @@ const ModelProviders: React.FC = () => {
           onAdd={handleAddKey}
           onEdit={handleEditKey}
           onDelete={handleDeleteKey}
+          onOrderChange={handleRefreshProvider}
+          providerId={currentProvider.id}
         />
         
         <ApiKeyForm
