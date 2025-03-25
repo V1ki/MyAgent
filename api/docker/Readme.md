@@ -34,6 +34,5 @@ docker run -d \
   -e POSTGRES_PASSWORD=postgres \
   -e POSTGRES_DB=model_providers \
   -p 15432:5432 \
-  -v "$(pwd)/../data/pgdata:/var/lib/postgresql/data" \
   pgvector/pgvector:pg17
 ```
