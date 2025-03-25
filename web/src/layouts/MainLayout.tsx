@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Button, theme } from 'antd';
 import {
   MenuFoldOutlined,
@@ -15,6 +15,7 @@ const { Header, Sider, Content } = Layout;
 
 const MainLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
   const navigate = useNavigate();
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
@@ -29,12 +30,16 @@ const MainLayout: React.FC = () => {
     return [currentPath];
   };
   
-  // 获取应该展开的子菜单
-  const getOpenKeys = () => {
+  // Set initial open keys based on current path
+  useEffect(() => {
     if (currentPath === '/models' || currentPath === '/model-providers') {
-      return ['models-submenu'];
+      setOpenKeys(['models-submenu']);
     }
-    return [];
+  }, [currentPath]);
+
+  // Handle submenu open change
+  const onOpenChange = (keys: string[]) => {
+    setOpenKeys(keys);
   };
 
   const menuItems = [
@@ -80,7 +85,8 @@ const MainLayout: React.FC = () => {
           theme="dark"
           mode="inline"
           selectedKeys={getSelectedKeys()}
-          openKeys={getOpenKeys()}
+          openKeys={openKeys}
+          onOpenChange={onOpenChange}
           items={menuItems}
           onSelect={({ key }) => navigate({ to: key as string })}
         />

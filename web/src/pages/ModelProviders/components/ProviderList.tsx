@@ -50,7 +50,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
             icon={<KeyOutlined />} 
             onClick={() => onManageKeys(record)}
           >
-            管理密钥
+            管理
           </Button>
           <Button 
             icon={<EditOutlined />} 

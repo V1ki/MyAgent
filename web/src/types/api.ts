@@ -7,11 +7,45 @@ export interface ApiKey {
   key?: string; // Used only when creating/updating
 }
 
+// Free Quota types
+export enum FreeQuotaType {
+  CREDIT = "CREDIT",                    // 赠送金额
+  SHARED_TOKENS = "SHARED_TOKENS",      // 共享的赠送Token数
+  PER_MODEL_TOKENS = "PER_MODEL_TOKENS" // 每个模型独立的赠送Token数
+}
+
+export enum ResetPeriod {
+  NEVER = "NEVER",     // 永不重置
+  DAILY = "DAILY",     // 每天重置
+  WEEKLY = "WEEKLY",   // 每周重置
+  MONTHLY = "MONTHLY", // 每月重置
+  YEARLY = "YEARLY"    // 每年重置
+}
+
+export interface FreeQuota {
+  id: string;
+  provider_id: string;
+  model_implementation_id?: string;
+  amount: number;
+  reset_period: ResetPeriod;
+}
+
+export interface FreeQuotaUsage {
+  id: string;
+  api_key_id: string;
+  free_quota_id: string;
+  used_amount: number;
+  last_reset_date?: string;
+  next_reset_date?: string;
+}
+
 export interface ModelProvider {
   id: string;
   name: string;
   base_url: string;
   description?: string;
+  free_quota_type?: FreeQuotaType;
+  free_quota?: FreeQuota;
   api_keys?: ApiKey[];
   api_keys_count?: number;
 }
@@ -125,11 +159,31 @@ export interface FrontendApiKey {
   key: string;
 }
 
+// Frontend interfaces for Free Quota
+export interface FrontendFreeQuota {
+  id: string;
+  providerId: string;
+  modelImplementationId?: string;
+  amount: number;
+  resetPeriod: ResetPeriod;
+}
+
+export interface FrontendFreeQuotaUsage {
+  id: string;
+  apiKeyId: string;
+  freeQuotaId: string;
+  usedAmount: number;
+  lastResetDate?: string;
+  nextResetDate?: string;
+}
+
 export interface FrontendModelProvider {
   id: string;
   name: string;
   baseUrl: string;
   description?: string;
+  freeQuotaType?: FreeQuotaType;
+  freeQuota?: FrontendFreeQuota;
   apiKeys: FrontendApiKey[];
   apiKeysCount: number;
 }
@@ -140,6 +194,14 @@ export const toFrontendProvider = (provider: ModelProvider): FrontendModelProvid
   name: provider.name,
   baseUrl: provider.base_url,
   description: provider.description,
+  freeQuotaType: provider.free_quota_type,
+  freeQuota: provider.free_quota? {
+    id: provider.free_quota.id,
+    providerId: provider.free_quota.provider_id,
+    modelImplementationId: provider.free_quota.model_implementation_id,
+    amount: provider.free_quota.amount,
+    resetPeriod: provider.free_quota.reset_period
+  } : undefined,
   apiKeys: [],
   apiKeysCount: provider.api_keys_count || 0
 });

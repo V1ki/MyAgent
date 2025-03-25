@@ -14,7 +14,7 @@ import { useProviders } from './hooks/useProviders';
 import { useApiKeys } from './hooks/useApiKeys';
 
 // Types
-import { FrontendModelProvider, FrontendApiKey } from '../../types/api';
+import { FrontendModelProvider, FrontendApiKey, FreeQuotaType } from '../../types/api';
 
 const ModelProviders: React.FC = () => {
   // Provider state from hook
@@ -62,6 +62,7 @@ const ModelProviders: React.FC = () => {
     name: string;
     baseUrl: string;
     description?: string;
+    freeQuotaType?: FreeQuotaType;
     initialKeyAlias?: string;
     initialKey?: string;
   }) => {
@@ -71,7 +72,8 @@ const ModelProviders: React.FC = () => {
         editingProvider.id,
         values.name,
         values.baseUrl,
-        values.description
+        values.description,
+        values.freeQuotaType
       );
       
       if (success) {
@@ -88,6 +90,7 @@ const ModelProviders: React.FC = () => {
         values.name,
         values.baseUrl,
         values.description,
+        values.freeQuotaType,
         initialKey
       );
       
@@ -134,10 +137,7 @@ const ModelProviders: React.FC = () => {
         setIsKeyModalVisible(false);
         setEditingKey(null);
         // Refresh provider data to get updated keys
-        const updatedProvider = await fetchProvider(currentProvider.id);
-        if (updatedProvider) {
-          setCurrentProvider(updatedProvider);
-        }
+        handleRefreshProvider();
       }
     } else {
       // Create new key
@@ -152,10 +152,7 @@ const ModelProviders: React.FC = () => {
       if (success) {
         setIsKeyModalVisible(false);
         // Refresh provider data to get updated keys
-        const updatedProvider = await fetchProvider(currentProvider.id);
-        if (updatedProvider) {
-          setCurrentProvider(updatedProvider);
-        }
+        handleRefreshProvider();
       }
     }
   };
@@ -164,12 +161,19 @@ const ModelProviders: React.FC = () => {
     if (!currentProvider) return;
 
     const success = await deleteApiKey(currentProvider.id, keyId);
-    if (success && currentProvider) {
+    if (success) {
       // Refresh provider data to get updated keys list
-      const updatedProvider = await fetchProvider(currentProvider.id);
-      if (updatedProvider) {
-        setCurrentProvider(updatedProvider);
-      }
+      handleRefreshProvider();
+    }
+  };
+
+  // Helper function to refresh current provider data
+  const handleRefreshProvider = async () => {
+    if (!currentProvider) return;
+    
+    const freshProvider = await fetchProvider(currentProvider.id);
+    if (freshProvider) {
+      setCurrentProvider(freshProvider);
     }
   };
 
@@ -201,6 +205,7 @@ const ModelProviders: React.FC = () => {
         <ProviderDetail 
           provider={currentProvider}
           onBack={handleReturnToList}
+          onProviderChanged={handleRefreshProvider}
         />
         
         <ApiKeyList

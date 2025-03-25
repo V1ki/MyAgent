@@ -5,7 +5,10 @@ import {
   Model,
   ModelImplementation,
   FrontendModelProvider,
-  FrontendModelImplementation
+  FrontendModelImplementation,
+  FreeQuotaType,
+  FreeQuota,
+  FrontendFreeQuota
 } from '../types/api';
 import { convertToCamelCase, convertToSnakeCase } from './utils';
 
@@ -110,6 +113,7 @@ export const providerService = {
       name: provider.name,
       base_url: provider.base_url,
       description: provider.description,
+      free_quota_type: provider.free_quota_type,
       initial_api_key: initialKey ? {
         alias: initialKey.alias,
         key: initialKey.key
@@ -129,6 +133,11 @@ export const apiKeyService = createApiService<ApiKey>({
   subResourcePath: '/keys'
 });
 
+// Free quota API endpoints
+export const freeQuotaService = createApiService<FreeQuota, FrontendFreeQuota>({
+  basePath: '/providers', 
+  subResourcePath: '/free-quota'
+});
 
 // Model service
 export const modelService = {

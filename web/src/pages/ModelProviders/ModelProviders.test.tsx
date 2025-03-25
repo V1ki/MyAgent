@@ -296,7 +296,7 @@ describe('ModelProviders Page', () => {
     })
 
     it('should confirm before deleting provider', async () => {
-      const initialProviderCount = screen.getAllByRole('button', { name: /管理密钥/ }).length
+      const initialProviderCount = screen.getAllByRole('button', { name: /管理/ }).length
       
       // 点击第一个删除按钮
       const deleteButtons = screen.getAllByRole('button', { name: /删除/ })
@@ -316,7 +316,7 @@ describe('ModelProviders Page', () => {
       });
       
       // Verify provider was not deleted
-      const currentProviderCount = screen.getAllByRole('button', { name: /管理密钥/ }).length
+      const currentProviderCount = screen.getAllByRole('button', { name: /管理/ }).length
       expect(currentProviderCount).toBe(initialProviderCount)
       
       // Verify API was not called
@@ -324,7 +324,7 @@ describe('ModelProviders Page', () => {
     })
     
     it('should delete provider after confirmation', async () => {
-      const initialProviderCount = screen.getAllByRole('button', { name: /管理密钥/ }).length
+      const initialProviderCount = screen.getAllByRole('button', { name: /管理/ }).length
       
       // 点击第一个删除按钮
       const deleteButtons = screen.getAllByRole('button', { name: /删除/ })
@@ -345,7 +345,7 @@ describe('ModelProviders Page', () => {
       
       // 验证提供商是否被删除
       await waitFor(() => {
-        const newProviderCount = screen.getAllByRole('button', { name: /管理密钥/ }).length
+        const newProviderCount = screen.getAllByRole('button', { name: /管理/ }).length
         expect(newProviderCount).toBe(initialProviderCount - 1)
       })
     })
@@ -365,7 +365,7 @@ describe('ModelProviders Page', () => {
     })
 
     it('should cancel adding new provider', async () => {
-      const initialProviderCount = screen.getAllByRole('button', { name: /管理密钥/ }).length
+      const initialProviderCount = screen.getAllByRole('button', { name: /管理/ }).length
       
       // Open modal
       const addButton = screen.getByRole('button', { name: /添加提供商/ })
@@ -384,7 +384,7 @@ describe('ModelProviders Page', () => {
       })
       
       // Verify provider was not added
-      const newProviderCount = screen.getAllByRole('button', { name: /管理密钥/ }).length
+      const newProviderCount = screen.getAllByRole('button', { name: /管理/ }).length
       expect(newProviderCount).toBe(initialProviderCount)
       expect(screen.queryByText('Test Provider')).not.toBeInTheDocument()
       
@@ -514,20 +514,20 @@ describe('ModelProviders Page', () => {
   describe('ApiKey Management', () => {
     beforeEach(async () => {
       // Navigate to key management screen for each test in this describe block
-      const manageKeyButtons = screen.getAllByRole('button', { name: /管理密钥/ })
+      const manageKeyButtons = screen.getAllByRole('button', { name: /管理/ })
       await act(async () => {
         await userEvent.click(manageKeyButtons[0])
       })
       
       // Wait for API keys to be displayed
       await waitFor(() => {
-        expect(screen.getByText(/的 API 密钥管理/)).toBeInTheDocument()
+        expect(screen.getByText(/的管理/)).toBeInTheDocument()
       })
     })
 
     it('should display ProviderDetail correctly', async () => {
       // Verify provider details are displayed
-      expect(screen.getByText(/OpenAI 的 API 密钥管理/)).toBeInTheDocument()
+      expect(screen.getByText(/OpenAI 的管理/)).toBeInTheDocument()
       expect(screen.getByText(/提供商名称:/)).toBeInTheDocument()
       expect(screen.getByText(/接口地址:/)).toBeInTheDocument()
       expect(screen.getByText(/描述:/)).toBeInTheDocument()
@@ -666,12 +666,14 @@ describe('ModelProviders Page', () => {
 
     it('should be able to return to provider list', async () => {
       // 点击返回按钮
-      await userEvent.click(screen.getByRole('button', { name: /返 回/ }))
+      await act(async () => {
+        await userEvent.click(screen.getByRole('button', { name: /返 回/ }))
+      })
       
       // 验证是否返回到提供商列表
       await waitFor(() => {
         expect(screen.getByText('模型提供商管理')).toBeInTheDocument()
-        expect(screen.queryByText(/的 API 密钥管理/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/的管理/)).not.toBeInTheDocument()
       })
     })
   })
@@ -713,20 +715,24 @@ describe('ModelProviders Page', () => {
     it('should handle API error during provider update', async () => {
       // 点击第一个编辑按钮
       const editButtons = screen.getAllByRole('button', { name: /编辑/ })
-      await userEvent.click(editButtons[0])
-      
+      await act(async () => {
+        await userEvent.click(editButtons[0])
+      })
       // Force an error on next API call
       mockProviderService.update.mockRejectedValueOnce(new Error('Update Failed'))
       
       // 修改名称
       const nameInput = screen.getByRole('textbox', { name: '名称' })
-      await userEvent.clear(nameInput)
-      await userEvent.type(nameInput, 'OpenAI Modified Error')
+      await act(async () => {
+        await userEvent.clear(nameInput)
+        await userEvent.type(nameInput, 'OpenAI Modified Error')
+      })
       
       // 提交修改
       const submitButton = screen.getByRole('button', { name: 'OK' })
-      await userEvent.click(submitButton)
-      
+      await act(async () => {
+        await userEvent.click(submitButton)
+      })
       // Verify error message is shown (now using Ant Design message)
       await waitFor(() => {
         expect(mockProviderService.update).toHaveBeenCalled()

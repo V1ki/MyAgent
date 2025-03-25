@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { message } from 'antd';
 import { providerService } from '../../../services/api';
-import { FrontendModelProvider } from '../../../types/api';
-
+import { FrontendModelProvider, FreeQuotaType } from '../../../types/api';
 
 interface UseProvidersReturn {
   providers: FrontendModelProvider[];
@@ -14,13 +13,15 @@ interface UseProvidersReturn {
     name: string, 
     baseUrl: string, 
     description?: string, 
+    freeQuotaType?: FreeQuotaType,
     initialKey?: { alias: string, key: string }
   ) => Promise<boolean>;
   updateProvider: (
     id: string, 
     name: string, 
     baseUrl: string, 
-    description?: string
+    description?: string,
+    freeQuotaType?: FreeQuotaType
   ) => Promise<boolean>;
   deleteProvider: (id: string) => Promise<boolean>;
 }
@@ -70,7 +71,8 @@ export const useProviders = (): UseProvidersReturn => {
   const createProvider = useCallback(async (
     name: string, 
     baseUrl: string, 
-    description?: string, 
+    description?: string,
+    freeQuotaType?: FreeQuotaType,
     initialKey?: { alias: string, key: string }
   ) => {
     try {
@@ -78,7 +80,8 @@ export const useProviders = (): UseProvidersReturn => {
       await providerService.createProvider({
         name,
         base_url: baseUrl,
-        description
+        description,
+        free_quota_type: freeQuotaType
       }, initialKey);
       
       await fetchProviders();
@@ -97,14 +100,16 @@ export const useProviders = (): UseProvidersReturn => {
     id: string, 
     name: string, 
     baseUrl: string, 
-    description?: string
+    description?: string,
+    freeQuotaType?: FreeQuotaType
   ) => {
     try {
       setLoading(true);
       await providerService.update(id, {
         name,
         baseUrl: baseUrl,
-        description
+        description,
+        freeQuotaType
       });
       
       await fetchProvider(id);

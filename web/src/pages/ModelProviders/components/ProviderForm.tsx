@@ -1,9 +1,9 @@
-// filepath: /Users/v1ki/Documents/projs/work/my_agent/web/src/pages/ModelProviders/components/ProviderForm.tsx
 import React, { useEffect } from 'react';
-import { Form, Input, Typography, Modal } from 'antd';
-import { FrontendModelProvider } from '../../../types/api';
+import { Form, Input, Typography, Modal, Select } from 'antd';
+import { FrontendModelProvider, FreeQuotaType } from '../../../types/api';
 
 const { Text } = Typography;
+const { Option } = Select;
 
 interface ProviderFormProps {
   visible: boolean;
@@ -13,6 +13,7 @@ interface ProviderFormProps {
     name: string;
     baseUrl: string;
     description?: string;
+    freeQuotaType?: FreeQuotaType;
     initialKeyAlias?: string;
     initialKey?: string;
   }) => void;
@@ -35,6 +36,7 @@ const ProviderForm: React.FC<ProviderFormProps> = ({
         name: provider.name,
         baseUrl: provider.baseUrl,
         description: provider.description,
+        freeQuotaType: provider.freeQuotaType,
       });
     } else if (visible) {
       form.resetFields();
@@ -84,6 +86,18 @@ const ProviderForm: React.FC<ProviderFormProps> = ({
             maxLength={200} 
             autoSize={{ minRows: 2, maxRows: 4 }} 
           />
+        </Form.Item>
+        
+        <Form.Item
+          name="freeQuotaType"
+          label="免费额度类型"
+          help="设置此提供商使用的免费额度类型"
+        >
+          <Select placeholder="请选择免费额度类型">
+            <Option value={FreeQuotaType.CREDIT}>赠送金额</Option>
+            <Option value={FreeQuotaType.SHARED_TOKENS}>共享赠送Token</Option>
+            <Option value={FreeQuotaType.PER_MODEL_TOKENS}>每模型赠送Token</Option>
+          </Select>
         </Form.Item>
         
         {!isEditing && (
