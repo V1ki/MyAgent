@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.routers import providers, api_keys, models, free_quotas
 from app.db.database import init_pgvector, SessionLocal
-from app.db.init_data import initialize_database
 
 app = FastAPI(
     title="Model Providers API",
@@ -26,12 +25,6 @@ async def lifespan(app: FastAPI):
     try:
         init_pgvector()
         
-        # Initialize database with default data
-        db = SessionLocal()
-        try:
-            initialize_database(db)
-        finally:
-            db.close()
     except Exception as e:
         print(f"Warning: Failed to initialize database: {e}")
         
